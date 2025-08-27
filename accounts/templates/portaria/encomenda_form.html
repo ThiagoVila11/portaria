@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head><meta charset="utf-8"><title>Receber Encomenda</title></head>
+<body>
+<h1>Receber Encomenda</h1>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+<label>Condomínio</label>
+<select name="condominio">
+{% for c in condominios %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}
+</select><br>
+<label>Unidade</label>
+<select name="unidade">
+{% for u in unidades %}<option value="{{ u.id }}">{{ u }}</option>{% endfor %}
+</select><br>
+<label>Destinatário</label>
+<select name="destinatario">
+{% for m in moradores %}<option value="{{ m.id }}">{{ m.nome }}</option>{% endfor %}
+</select><br>
+<label>Transportadora</label><input name="transportadora"><br>
+<label>Código de rastreio</label><input name="codigo_rastreamento"><br>
+<label>Observações</label><textarea name="observacoes"></textarea><br>
+<button>Salvar</button>
+</form>
+<p><a href="{% url 'encomenda_list' %}">Voltar</a></p>
+</body>
+</html>

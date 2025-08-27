@@ -1,0 +1,206 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Portaria · Vila 11{% endblock %}</title>
+  <link rel="icon" href="{% static 'img/favicon.png' %}">
+
+  <!-- Fonte aproximada ao site Vila 11 -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      /* Paleta inspirada em vila11.com.br (tons de azul escuro + acentos claros) */
+      --brand-900:#0b2a4a;   /* azul escuro principal */
+      --brand-800:#123a6b;   
+      --brand-600:#1b4f8a;   
+      --brand-300:#e6eef8;   /* claro para hovers/bordas */
+      --accent-500:#00a6a6;  /* acento esverdeado/teal */
+      --bg:#ffffff;
+      --text-900:#0f172a;    /* cinza-azulado escuro */
+      --text-600:#334155;    /* texto secundário */
+      --ring:#cbd5e1;        /* bordas sutis */
+      --sidebar-w: 264px;    /* largura do menu lateral */
+      --radius: 16px;
+      --container: 1140px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--text-900);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue", sans-serif;
+      line-height:1.5;
+    }
+    a{color:inherit; text-decoration:none}
+
+    /* Layout principal: sidebar fixa + conteúdo */
+    .layout{display:flex; min-height:100dvh;}
+    aside.sidebar{
+      width:var(--sidebar-w); background:var(--brand-900); color:#e6edf7;
+      display:flex; flex-direction:column; gap:18px; padding:22px 18px; position:sticky; top:0; height:100dvh;
+    }
+    .brand{display:flex; align-items:center; gap:10px; padding:6px 6px 10px}
+    .brand img{height:36px; width:auto}
+    .brand .name{font-weight:700; letter-spacing:.02em}
+
+    /* Bloco usuário */
+    .userbox{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:12px}
+    .userrow{display:flex; gap:10px; align-items:center}
+    .avatar{height:40px; width:40px; border-radius:999px; background:#fff; display:grid; place-items:center; color:var(--brand-900); font-weight:700}
+    .uname{font-weight:600}
+    .utags{margin-top:6px; display:flex; flex-wrap:wrap; gap:6px}
+    .tag{font-size:12px; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.22)}
+    .user-actions{display:flex; gap:10px; margin-top:10px}
+    .btn-ghost{display:inline-flex; align-items:center; gap:6px; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.18)}
+    .btn-ghost:hover{background:rgba(255,255,255,.08)}
+
+    /* Navegação lateral */
+    nav.sidenav{display:flex; flex-direction:column; gap:4px; margin-top:6px}
+    .navitem{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; font-weight:600; color:#e9f2ff}
+    .navitem:hover{background:rgba(255,255,255,.08)}
+    .navitem.active{background:#ffffff; color:var(--brand-900); box-shadow:0 8px 22px rgba(2,8,23,.08)}
+    .navitem svg{flex:0 0 20px; height:20px; width:20px}
+
+    /* Conteúdo */
+    .content{flex:1; min-width:0;}
+    .topbar{position:sticky; top:0; z-index:40; background:#fff; border-bottom:1px solid var(--ring)}
+    .topwrap{display:flex; align-items:center; gap:10px; min-height:64px; padding:0 16px}
+    .menu-toggle{display:none; border:1px solid var(--ring); background:#fff; border-radius:10px; padding:8px 10px}
+    .page-title{font-weight:700; color:var(--brand-900)}
+
+    .container{max-width:var(--container); margin:0 auto; padding:0 20px}
+
+    .messages{margin:16px 0}
+    .msg{padding:12px 14px; border-radius:12px; border:1px solid var(--ring); background:#fff; margin-bottom:10px}
+    .msg.success{border-color:#16a34a33; background:#16a34a10}
+    .msg.error{border-color:#dc262633; background:#dc262610}
+
+    main{padding:24px 0 48px}
+    .card{background:#fff; border:1px solid var(--ring); border-radius:var(--radius); box-shadow:0 10px 30px rgba(2,8,23,.04)}
+
+    /* Responsivo: sidebar recolhível */
+    @media (max-width: 1024px){
+      aside.sidebar{position:fixed; inset:0 auto 0 0; transform:translateX(-100%); transition:transform .2s ease}
+      .layout.open aside.sidebar{transform:none}
+      .menu-toggle{display:inline-flex}
+      .content{margin-left:0}
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+<div class="layout" id="layoutRoot">
+  <!-- Sidebar -->
+  <aside class="sidebar" aria-label="Menu lateral">
+    <div class="brand">
+      <a href="{% url 'dashboard' %}" class="brand-link">
+        <img src="{% static 'img/logo-vila11-white.svg' %}" alt="Vila 11" onerror="this.src='{% static 'img/logo-vila11.svg' %}'">
+      </a>
+      <div class="name">Portaria</div>
+    </div>
+
+    <!-- Bloco do usuário logado -->
+    <section class="userbox">
+      <div class="userrow">
+        <div class="avatar" aria-hidden="true">
+          <!-- Ícone usuário -->
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+        <div>
+          <div class="uname">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="muted" style="opacity:.85; font-size:13px">{{ request.user.email }}</div>
+        </div>
+      </div>
+      <div class="utags">
+        {% for g in request.user.groups.all %}<span class="tag">{{ g.name }}</span>{% empty %}<span class="tag">Sem grupo</span>{% endfor %}
+      </div>
+      <div class="user-actions">
+        <a class="btn-ghost" href="{% url 'logout' %}">Sair</a>
+        <a class="btn-ghost" href="{% url 'dashboard' %}">Dashboard</a>
+      </div>
+    </section>
+
+    <!-- Navegação -->
+    {% with request.resolver_match.url_name as url_name %}
+    <nav class="sidenav">
+      <a class="navitem {% if url_name == 'acesso_list' %}active{% endif %}" href="{% url 'acesso_list' %}">
+        <!-- Ícone Acessos (Shield/Check) -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+        <span>Acessos</span>
+      </a>
+      <a class="navitem {% if url_name == 'encomenda_list' %}active{% endif %}" href="{% url 'encomenda_list' %}">
+        <!-- Ícone Encomendas (Caixa) -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          <path d="M3.3 7L12 12l8.7-5M12 22V12"/>
+        </svg>
+        <span>Encomendas</span>
+      </a>
+      {% block sidebar_extra %}{% endblock %}
+    </nav>
+    {% endwith %}
+
+    <div style="margin-top:auto; font-size:12px; opacity:.8">
+      <div>© Vila 11</div>
+      <div style="opacity:.8">{{ now|date:'Y' }}</div>
+    </div>
+  </aside>
+
+  <!-- Área de conteúdo -->
+  <div class="content">
+    <div class="topbar">
+      <div class="topwrap">
+        <button class="menu-toggle" aria-label="Abrir menu" onclick="document.getElementById('layoutRoot').classList.toggle('open')">☰</button>
+        <div class="page-title">{% block page_title %}{% endblock %}</div>
+        <div style="margin-left:auto"></div>
+        <!-- Espaço para ações na topbar -->
+        {% block topbar_actions %}{% endblock %}
+      </div>
+    </div>
+
+    <main>
+      <div class="container">
+        <!-- Django messages -->
+        {% if messages %}
+          <div class="messages">
+            {% for message in messages %}
+              <div class="msg {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+
+    <footer class="container" style="padding:16px 20px 28px; color:var(--text-600); border-top:1px solid var(--ring)">
+      <small>Conectado como <strong>{{ request.user.get_username }}</strong>. Ambiente interno de portaria.</small>
+    </footer>
+  </div>
+</div>
+
+<script>
+  // Fecha o dropdown do menu lateral em telas pequenas quando clicar fora (se usar extras no sidebar)
+  document.addEventListener('click', function(e){
+    const root = document.getElementById('layoutRoot');
+    if(!root) return;
+    if(window.innerWidth <= 1024){
+      const sidebar = root.querySelector('aside.sidebar');
+      if(sidebar && !sidebar.contains(e.target) && !e.target.closest('.menu-toggle')){
+        root.classList.remove('open');
+      }
+    }
+  });
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

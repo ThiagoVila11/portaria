@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head><meta charset="utf-8"><title>Encomendas</title></head>
+<body>
+<h1>Encomendas</h1>
+<p><a href="{% url 'encomenda_create' %}">Registrar recebimento</a> | <a href="{% url 'dashboard' %}">Voltar</a></p>
+<table border="1" cellpadding="6">
+<tr>
+<th>ID</th><th>Condomínio</th><th>Unidade</th><th>Destinatário</th><th>Status</th><th>Recebida</th><th>Ação</th>
+</tr>
+{% for e in encomendas %}
+<tr>
+<td>{{ e.id }}</td><td>{{ e.condominio }}</td><td>{{ e.unidade }}</td>
+<td>{{ e.destinatario }}</td><td>{{ e.get_status_display }}</td>
+<td>{{ e.data_recebimento|date:"d/m/Y H:i" }}</td>
+<td>
+{% if perms.portaria.pode_entregar_encomenda and e.status == 'RECEBIDA' %}
+<form method="post" action="{% url 'encomenda_entregar' e.id %}">{% csrf_token %}
+<button>Entregar</button>
+</form>
+{% endif %}
+</td>
+</tr>
+{% endfor %}
+</table>
+</body>
+</html>

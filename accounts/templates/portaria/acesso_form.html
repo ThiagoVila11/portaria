@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="pt-br">
+    <head><meta charset="utf-8"><title>Registrar Acesso</title></head>
+    <body>
+        <h1>Registrar Acesso</h1>
+            <form method="post">{% csrf_token %}
+            <label>Condomínio</label>
+            <select name="condominio">{% for c in condominios %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}</select><br>
+            <label>Unidade (opcional)</label>
+            <select name="unidade"><option value="">—</option>{% for u in unidades %}<option value="{{ u.id }}">{{ u }}</option>{% endfor %}</select><br>
+            <label>Tipo</label>
+            <select name="pessoa_tipo">{% for v,l in tipos %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select><br>
+            <label>Nome</label><input name="pessoa_nome" required><br>
+            <label>Documento</label><input name="documento"><br>
+            <label>Método</label>
+            <select name="metodo">{% for v,l in metodos %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select><br>
+            <label>Resultado</label>
+            <select name="resultado">{% for v,l in resultados %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select><br>
+            <label>Motivo (se negado)</label><input name="motivo_negado"><br>
+            <button>Salvar</button>
+        </form>
+        <p><a href="{% url 'acesso_list' %}">Voltar</a></p>
+    </body>
+</html>

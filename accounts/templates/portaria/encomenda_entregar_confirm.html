@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head><meta charset="utf-8"><title>Entregar Encomenda</title></head>
+<body>
+<h1>Confirmar entrega</h1>
+<p>{{ encomenda }}</p>
+<form method="post">{% csrf_token %}
+<button>Confirmar entrega</button>
+</form>
+<p><a href="{% url 'encomenda_list' %}">Cancelar</a></p>
+</body>
+</html>
