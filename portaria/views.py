@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
-from .models import Encomenda, EventoAcesso, StatusEncomenda
+from .models import Encomenda, EventoAcesso, StatusEncomenda, TipoPessoa, MetodoAcesso, ResultadoAcesso
 from condominio.models import Condominio, Unidade, Morador
 
 
@@ -65,21 +65,29 @@ def acesso_list(request):
 
 
 @login_required
-@permission_required('portaria.pode_registrar_acesso', raise_exception=True)
+@permission_required('portaria.pode_registrar_acesso', raise_exception=True)  # <- importante
 def acesso_create(request):
     if request.method == 'POST':
         EventoAcesso.objects.create(
-        condominio_id=request.POST.get('condominio'),
-        unidade_id=request.POST.get('unidade') or None,
-        pessoa_tipo=request.POST.get('pessoa_tipo'),
-        pessoa_nome=request.POST.get('pessoa_nome'),
-        documento=request.POST.get('documento', ''),
-        metodo=request.POST.get('metodo'),
-        resultado=request.POST.get('resultado'),
-        motivo_negado=request.POST.get('motivo_negado', ''),
-        criado_por=request.user,
+            condominio_id=request.POST.get('condominio'),
+            unidade_id=request.POST.get('unidade') or None,
+            pessoa_tipo=request.POST.get('pessoa_tipo'),
+            pessoa_nome=request.POST.get('pessoa_nome'),
+            documento=request.POST.get('documento', ''),
+            metodo=request.POST.get('metodo'),
+            resultado=request.POST.get('resultado'),
+            motivo_negado=request.POST.get('motivo_negado', ''),
+            criado_por=request.user,
         )
-    return redirect('acesso_list')
+        return redirect('acesso_list')
+
+    return render(request, 'portaria/acesso_form.html', {
+        'condominios': Condominio.objects.all(),
+        'unidades': Unidade.objects.all(),
+        'tipos': TipoPessoa.choices,
+        'metodos': MetodoAcesso.choices,
+        'resultados': ResultadoAcesso.choices,
+    })
 
 
 #from .models import TipoPessoa, MetodoAcesso, ResultadoAcesso

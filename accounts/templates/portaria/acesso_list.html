@@ -1,24 +1,31 @@
 {% extends "base.html" %}
-<!DOCTYPE html>
-<html lang="pt-br">
-<head><meta charset="utf-8"><title>Acessos</title></head>
-<body>
-<h1>Eventos de Acesso</h1>
-<p><a href="{% url 'acesso_create' %}">Registrar acesso</a> | <a href="{% url 'dashboard' %}">Voltar</a></p>
-<table border="1" cellpadding="6">
-<tr>
-<th>Data</th><th>Condomínio</th><th>Nome</th><th>Tipo</th><th>Resultado</th><th>Método</th>
-</tr>
-{% for a in eventos %}
-<tr>
-<td>{{ a.criado_em|date:"d/m/Y H:i" }}</td>
-<td>{{ a.condominio }}</td>
-<td>{{ a.pessoa_nome }}</td>
-<td>{{ a.get_pessoa_tipo_display }}</td>
-<td>{{ a.get_resultado_display }}</td>
-<td>{{ a.get_metodo_display }}</td>
-</tr>
-{% endfor %}
-</table>
-</body>
-</html>
+
+{% block title %}Acessos · Portaria{% endblock %}
+{% block page_title %}Acessos{% endblock %}
+
+{% block content %}
+  <div class="card" style="padding:16px">
+    <p>
+      <a class="btn" href="{% url 'acesso_create' %}">Registrar acesso</a>
+      <a class="btn-outline" style="margin-left:8px" href="{% url 'dashboard' %}">Voltar</a>
+    </p>
+
+    <table border="1" cellpadding="6" width="100%">
+      <tr>
+        <th>Data</th><th>Condomínio</th><th>Nome</th><th>Tipo</th><th>Resultado</th><th>Método</th>
+      </tr>
+      {% for a in eventos %}
+      <tr>
+        <td>{{ a.criado_em|date:"d/m/Y H:i" }}</td>
+        <td>{{ a.condominio }}</td>
+        <td>{{ a.pessoa_nome }}</td>
+        <td>{{ a.get_pessoa_tipo_display }}</td>
+        <td>{{ a.get_resultado_display }}</td>
+        <td>{{ a.get_metodo_display }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6">Nenhum evento de acesso encontrado.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+{% endblock %}

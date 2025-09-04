@@ -1,28 +1,39 @@
 {% extends "base.html" %}
-<!DOCTYPE html>
-<html lang="pt-br">
-<head><meta charset="utf-8"><title>Encomendas</title></head>
-<body>
-<h1>Encomendas</h1>
-<p><a href="{% url 'encomenda_create' %}">Registrar recebimento</a> | <a href="{% url 'dashboard' %}">Voltar</a></p>
-<table border="1" cellpadding="6">
-<tr>
-<th>ID</th><th>Condomínio</th><th>Unidade</th><th>Destinatário</th><th>Status</th><th>Recebida</th><th>Ação</th>
-</tr>
-{% for e in encomendas %}
-<tr>
-<td>{{ e.id }}</td><td>{{ e.condominio }}</td><td>{{ e.unidade }}</td>
-<td>{{ e.destinatario }}</td><td>{{ e.get_status_display }}</td>
-<td>{{ e.data_recebimento|date:"d/m/Y H:i" }}</td>
-<td>
-{% if perms.portaria.pode_entregar_encomenda and e.status == 'RECEBIDA' %}
-<form method="post" action="{% url 'encomenda_entregar' e.id %}">{% csrf_token %}
-<button>Entregar</button>
-</form>
-{% endif %}
-</td>
-</tr>
-{% endfor %}
-</table>
-</body>
-</html>
+
+{% block title %}Encomendas · Portaria{% endblock %}
+{% block page_title %}Encomendas{% endblock %}
+
+{% block content %}
+  <div class="card" style="padding:16px">
+    <p>
+      <a class="btn" href="{% url 'encomenda_create' %}">Registrar recebimento</a>
+      <a class="btn-outline" style="margin-left:8px" href="{% url 'dashboard' %}">Voltar</a>
+    </p>
+
+    <table border="1" cellpadding="6" width="100%">
+      <tr>
+        <th>ID</th><th>Condomínio</th><th>Unidade</th><th>Destinatário</th>
+        <th>Status</th><th>Recebida</th><th>Ação</th>
+      </tr>
+      {% for e in encomendas %}
+      <tr>
+        <td>{{ e.id }}</td>
+        <td>{{ e.condominio }}</td>
+        <td>{{ e.unidade }}</td>
+        <td>{{ e.destinatario }}</td>
+        <td>{{ e.get_status_display }}</td>
+        <td>{{ e.data_recebimento|date:"d/m/Y H:i" }}</td>
+        <td>
+          {% if perms.portaria.pode_entregar_encomenda and e.status == 'RECEBIDA' %}
+            <form method="post" action="{% url 'encomenda_entregar' e.id %}">{% csrf_token %}
+              <button class="btn-outline">Entregar</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7">Nenhuma encomenda registrada.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+{% endblock %}

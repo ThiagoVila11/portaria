@@ -1,27 +1,49 @@
 {% extends "base.html" %}
-<!DOCTYPE html>
-<html lang="pt-br">
-<head><meta charset="utf-8"><title>Receber Encomenda</title></head>
-<body>
-<h1>Receber Encomenda</h1>
-<form method="post" enctype="multipart/form-data">{% csrf_token %}
-<label>Condomínio</label>
-<select name="condominio">
-{% for c in condominios %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}
-</select><br>
-<label>Unidade</label>
-<select name="unidade">
-{% for u in unidades %}<option value="{{ u.id }}">{{ u }}</option>{% endfor %}
-</select><br>
-<label>Destinatário</label>
-<select name="destinatario">
-{% for m in moradores %}<option value="{{ m.id }}">{{ m.nome }}</option>{% endfor %}
-</select><br>
-<label>Transportadora</label><input name="transportadora"><br>
-<label>Código de rastreio</label><input name="codigo_rastreamento"><br>
-<label>Observações</label><textarea name="observacoes"></textarea><br>
-<button>Salvar</button>
-</form>
-<p><a href="{% url 'encomenda_list' %}">Voltar</a></p>
-</body>
-</html>
+
+{% block title %}Receber Encomenda · Portaria{% endblock %}
+{% block page_title %}Receber Encomenda{% endblock %}
+
+{% block content %}
+  <div class="card" style="padding:16px; max-width:720px">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div style="display:grid; gap:10px">
+        <label>Condomínio<br>
+          <select name="condominio" required>
+            {% for c in condominios %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}
+          </select>
+        </label>
+
+        <label>Unidade<br>
+          <select name="unidade" required>
+            {% for u in unidades %}<option value="{{ u.id }}">{{ u }}</option>{% endfor %}
+          </select>
+        </label>
+
+        <label>Destinatário<br>
+          <select name="destinatario" required>
+            {% for m in moradores %}<option value="{{ m.id }}">{{ m.nome }}</option>{% endfor %}
+          </select>
+        </label>
+
+        <label>Transportadora<br>
+          <input name="transportadora">
+        </label>
+
+        <label>Código de rastreio<br>
+          <input name="codigo_rastreamento">
+        </label>
+
+        <label>Observações<br>
+          <textarea name="observacoes" rows="3"></textarea>
+        </label>
+      </div>
+
+      <div style="display:flex; gap:8px; margin-top:14px">
+        <button class="btn">Salvar</button>
+        <a class="btn-outline" href="{% url 'encomenda_list' %}">Voltar</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

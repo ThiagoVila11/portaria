@@ -1,18 +1,19 @@
 {% extends "base.html" %}
-<!DOCTYPE html>
-<html lang="pt-br">
-<head><meta charset="utf-8"><title>Dashboard</title></head>
-<body>
-<p><a href="{% url 'logout' %}">Sair</a></p>
-<h1>Dashboard</h1>
-<ul>
-<li>Total de encomendas: {{ total_encomendas }}</li>
-<li>Encomendas pendentes: {{ encomendas_pendentes }}</li>
-<li>Acessos hoje: {{ acessos_hoje }}</li>
-</ul>
-<nav>
-<a href="{% url 'encomenda_list' %}">Encomendas</a> |
-<a href="{% url 'acesso_list' %}">Acessos</a>
-</nav>
-</body>
-</html>
+
+{% block title %}Dashboard · Portaria{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+  <div class="card" style="padding:16px">
+    <ul>
+      <li>Total de encomendas: <strong>{{ total_encomendas }}</strong></li>
+      <li>Encomendas pendentes: <strong>{{ encomendas_pendentes }}</strong></li>
+      <li>Acessos hoje: <strong>{{ acessos_hoje }}</strong></li>
+    </ul>
+
+    <p style="margin-top:10px">
+      <a class="btn" href="{% url 'encomenda_list' %}">Encomendas</a>
+      <a class="btn-outline" style="margin-left:8px" href="{% url 'acesso_list' %}">Acessos</a>
+    </p>
+  </div>
+{% endblock %}

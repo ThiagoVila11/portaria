@@ -1,25 +1,72 @@
 {% extends "base.html" %}
-<!DOCTYPE html>
-<html lang="pt-br">
-    <head><meta charset="utf-8"><title>Registrar Acesso</title></head>
-    <body>
-        <h1>Registrar Acesso</h1>
-            <form method="post">{% csrf_token %}
-            <label>Condomínio</label>
-            <select name="condominio">{% for c in condominios %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}</select><br>
-            <label>Unidade (opcional)</label>
-            <select name="unidade"><option value="">—</option>{% for u in unidades %}<option value="{{ u.id }}">{{ u }}</option>{% endfor %}</select><br>
-            <label>Tipo</label>
-            <select name="pessoa_tipo">{% for v,l in tipos %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select><br>
-            <label>Nome</label><input name="pessoa_nome" required><br>
-            <label>Documento</label><input name="documento"><br>
-            <label>Método</label>
-            <select name="metodo">{% for v,l in metodos %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select><br>
-            <label>Resultado</label>
-            <select name="resultado">{% for v,l in resultados %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select><br>
-            <label>Motivo (se negado)</label><input name="motivo_negado"><br>
-            <button>Salvar</button>
-        </form>
-        <p><a href="{% url 'acesso_list' %}">Voltar</a></p>
-    </body>
-</html>
+
+{% block title %}Registrar Acesso · Portaria{% endblock %}
+{% block page_title %}Registrar Acesso{% endblock %}
+
+{% block content %}
+  <div class="card" style="padding:16px; max-width:720px">
+    <form method="post">
+      {% csrf_token %}
+
+      <div style="display:grid; gap:10px">
+        <label>Condomínio<br>
+          <select name="condominio" required>
+            {% for c in condominios %}
+              <option value="{{ c.id }}">{{ c.nome }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label>Unidade (opcional)<br>
+          <select name="unidade">
+            <option value="">—</option>
+            {% for u in unidades %}
+              <option value="{{ u.id }}">{{ u }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label>Tipo<br>
+          <select name="pessoa_tipo" required>
+            {% for v,l in tipos %}
+              <option value="{{ v }}">{{ l }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label>Nome<br>
+          <input name="pessoa_nome" required>
+        </label>
+
+        <label>Documento<br>
+          <input name="documento">
+        </label>
+
+        <label>Método<br>
+          <select name="metodo" required>
+            {% for v,l in metodos %}
+              <option value="{{ v }}">{{ l }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label>Resultado<br>
+          <select name="resultado" required>
+            {% for v,l in resultados %}
+              <option value="{{ v }}">{{ l }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label>Motivo (se negado)<br>
+          <input name="motivo_negado">
+        </label>
+      </div>
+
+      <div style="display:flex; gap:8px; margin-top:14px">
+        <button class="btn">Salvar</button>
+        <a class="btn-outline" href="{% url 'acesso_list' %}">Voltar</a>
+      </div>
+    </form>
+  </div> 
+{% endblock %}
