@@ -2,6 +2,7 @@ import uuid
 from django.db import models
 from django.contrib.auth import get_user_model
 from condominio.models import Condominio, Unidade, Morador
+from django.utils import timezone
 
 
 User = get_user_model()
@@ -81,3 +82,28 @@ class Meta:
 
 def __str__(self):
     return f"Acesso {self.pessoa_nome} - {self.get_resultado_display()} ({self.criado_em:%d/%m %H:%M})"
+
+
+class VisitorLog(models.Model):
+    sf_id = models.CharField(max_length=32, unique=True)  # Id do Salesforce
+    nome = models.CharField(max_length=200, blank=True)
+    documento = models.CharField(max_length=50, blank=True)
+    condominio = models.ForeignKey(Condominio, null=True, blank=True, on_delete=models.SET_NULL)
+    unidade = models.ForeignKey(Unidade, null=True, blank=True, on_delete=models.SET_NULL)
+    checkin = models.DateTimeField(null=True, blank=True)
+    checkout = models.DateTimeField(null=True, blank=True)
+
+    created_date = models.DateTimeField(null=True, blank=True)  # CreatedDate do SF
+    raw = models.JSONField(default=dict)                        # payload completo
+
+    imported_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["created_date"]),
+            models.Index(fields=["nome"]),
+        ]
+        ordering = ["-created_date", "-imported_at"]
+
+    def __str__(self):
+        return f"{self.nome or self.sf_id}"

@@ -116,6 +116,14 @@ DATABASES = {
     }
 }
 
+SF = {
+    "USERNAME": env("SF_USERNAME", default=None),
+    "PASSWORD": env("SF_PASSWORD", default=None),
+    "TOKEN":    env("SF_TOKEN",    default=None),
+    "DOMAIN":   env("SF_DOMAIN",   default="login"),
+    "SOBJECT":  env("SF_SOBJECT",  default="reda__Visitor_Log__c"),
+}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
