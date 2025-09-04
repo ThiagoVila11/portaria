@@ -124,6 +124,11 @@ SF = {
     "SOBJECT":  env("SF_SOBJECT",  default="reda__Visitor_Log__c"),
 }
 
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "dashboard"   # após login bem-sucedido
+LOGOUT_REDIRECT_URL = "login"      # redundante se usou next_page, mas ok
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
