@@ -7,13 +7,12 @@ User = get_user_model()
 class Condominio(models.Model):
     nome = models.CharField(max_length=120)
     cnpj = models.CharField(max_length=18, blank=True)
-    # NOVO: usuários que podem acessar este condomínio
     usuarios = models.ManyToManyField(
         User,
         blank=True,
         related_name="condominios_permitidos",
     )
-    sf_property_id = models.CharField("Salesforce Property Id", max_length=18, blank=True)
+    sf_property_id = models.CharField("Salesforce Property Id", max_length=18, blank=True, default="")
 
     def __str__(self):
         return self.nome
