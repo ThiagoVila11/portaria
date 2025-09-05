@@ -9,7 +9,6 @@ SF_USERNAME = getattr(settings, "SF_USERNAME", None)
 SF_PASSWORD = getattr(settings, "SF_PASSWORD", None)
 SF_TOKEN    = getattr(settings, "SF_TOKEN", None)
 SF_DOMAIN   = getattr(settings, "SF_DOMAIN", "login")
-OPENAI_API_KEY = getattr(settings, "OPENAI_API_KEY", None)
 
 def sf_connect() -> Salesforce:
     if not all([SF_USERNAME, SF_PASSWORD, SF_TOKEN]):

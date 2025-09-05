@@ -24,7 +24,7 @@ SF_USERNAME = os.getenv("SF_USERNAME")       # integracao@...
 SF_PASSWORD = os.getenv("SF_PASSWORD")
 SF_TOKEN    = os.getenv("SF_TOKEN")
 SF_DOMAIN   = os.getenv("SF_DOMAIN", "login")   # "test" p/ sandbox
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")    # se for usar OCR
+#OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")    # se for usar OCR
 
 # Banco de dados via DATABASE_URL
 DATABASES = {
