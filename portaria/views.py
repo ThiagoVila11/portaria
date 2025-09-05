@@ -140,13 +140,62 @@ def encomenda_entregar(request, pk):
 #    return render(request, 'portaria/acesso_list.html', {'eventos': eventos})
 
 @login_required
+@login_required
 def acesso_list(request):
-    conds = allowed_condominios_for(request.user)
-    eventos = (EventoAcesso.objects
-               .select_related("condominio", "unidade")
-               .filter(condominio__in=conds)
-               .order_by("-criado_em"))
-    return render(request, "portaria/acesso_list.html", {"eventos": eventos})
+    allowed = allowed_condominios_for(request.user)
+    is_admin_like = request.user.is_superuser or request.user.groups.filter(name="Administrador").exists()
+
+    qs = (EventoAcesso.objects
+          .select_related("condominio", "unidade")
+          .filter(condominio__in=allowed))
+
+    # Valores vindos do GET (se houver)
+    condominio_id = request.GET.get("condominio")
+    dt_ini        = request.GET.get("dt_ini")
+    dt_fim        = request.GET.get("dt_fim")
+    nome_q        = request.GET.get("nome")
+
+    # Primeira carga: nenhum filtro no GET
+    initial_load = not any(k in request.GET for k in ["condominio", "dt_ini", "dt_fim", "nome"])
+    if initial_load:
+        today_iso = timezone.localdate().isoformat()
+        dt_ini = today_iso
+        dt_fim = today_iso
+        if not is_admin_like:
+            first_allowed_id = allowed.order_by("nome").values_list("id", flat=True).first()
+            condominio_id = str(first_allowed_id) if first_allowed_id else ""
+
+    # Aplica filtros
+    if condominio_id:
+        qs = qs.filter(condominio_id=condominio_id)
+
+    if dt_ini:
+        d0 = parse_date(dt_ini)
+        if d0:
+            qs = qs.filter(criado_em__date__gte=d0)
+
+    if dt_fim:
+        d1 = parse_date(dt_fim)
+        if d1:
+            qs = qs.filter(criado_em__date__lte=d1)
+
+    if nome_q:
+        qs = qs.filter(pessoa_nome__icontains=nome_q)
+
+    qs = qs.order_by("-criado_em")
+
+    ctx = {
+        "eventos": qs,
+        "condominios": allowed,
+        "q": {
+            "condominio": condominio_id or "",
+            "dt_ini": dt_ini or "",
+            "dt_fim": dt_fim or "",
+            "nome": nome_q or "",
+        },
+        "total": qs.count(),
+    }
+    return render(request, "portaria/acesso_list.html", ctx)
 
 
 @login_required

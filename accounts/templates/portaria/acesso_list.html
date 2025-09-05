@@ -5,6 +5,48 @@
 
 {% block content %}
   <div class="card" style="padding:16px">
+
+    <!-- Filtros -->
+    <form method="get" style="display:grid; gap:10px; margin-bottom:12px">
+      <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:end">
+        <label style="display:grid; gap:6px">
+          <span>Condomínio</span>
+          <select name="condominio" style="min-width:220px">
+            <option value="">Todos</option>
+            {% for c in condominios %}
+              <option value="{{ c.id }}" {% if q.condominio|default:'' == c.id|stringformat:'s' %}selected{% endif %}>
+                {{ c.nome }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label style="display:grid; gap:6px">
+          <span>Data inicial</span>
+          <input type="date" name="dt_ini" value="{{ q.dt_ini|default:'' }}">
+        </label>
+
+        <label style="display:grid; gap:6px">
+          <span>Data final</span>
+          <input type="date" name="dt_fim" value="{{ q.dt_fim|default:'' }}">
+        </label>
+
+        <label style="display:grid; gap:6px">
+          <span>Nome</span>
+          <input type="text" name="nome" value="{{ q.nome|default:'' }}" placeholder="Nome da pessoa">
+        </label>
+
+        <div style="display:flex; gap:8px">
+          <button class="btn" type="submit">Filtrar</button>
+          <a class="btn-outline" href="{% url 'acesso_list' %}">Limpar</a>
+        </div>
+      </div>
+    </form>
+
+    <p class="muted" style="margin: 6px 0 12px">
+      Resultados: <strong>{{ total|default:eventos|length }}</strong>
+    </p>
+
     <p>
       <a class="btn" href="{% url 'acesso_create' %}">Registrar acesso</a>
       <a class="btn-outline" style="margin-left:8px" href="{% url 'dashboard' %}">Voltar</a>
