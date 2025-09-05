@@ -1,8 +1,11 @@
 from django.contrib.auth.decorators import login_required, permission_required
 from django.shortcuts import render, redirect, get_object_or_404
+from portaria.permissions import allowed_condominios_for
 from django.utils import timezone
 from .models import Encomenda, EventoAcesso, StatusEncomenda, TipoPessoa, MetodoAcesso, ResultadoAcesso
 from condominio.models import Condominio, Unidade, Morador
+from portaria.models import EventoAcesso, Encomenda
+from condominio.models import Condominio, Unidade
 
 
 @login_required
@@ -15,10 +18,20 @@ def dashboard(request):
     return render(request, 'portaria/dashboard.html', ctx)
 
 
+#@login_required
+#def encomenda_list(request):
+#    encomendas = Encomenda.objects.select_related('destinatario', 'unidade', 'condominio').order_by('-data_recebimento')
+#    return render(request, 'portaria/encomenda_list.html', {'encomendas': encomendas})
+
 @login_required
 def encomenda_list(request):
-    encomendas = Encomenda.objects.select_related('destinatario', 'unidade', 'condominio').order_by('-data_recebimento')
-    return render(request, 'portaria/encomenda_list.html', {'encomendas': encomendas})
+    conds = allowed_condominios_for(request.user)
+    encomendas = (Encomenda.objects
+                  .select_related("condominio", "unidade")
+                  .filter(condominio__in=conds)
+                  .order_by("-data_recebimento"))
+    return render(request, "portaria/encomenda_list.html", {"encomendas": encomendas})
+
 
 
 @login_required
@@ -58,10 +71,19 @@ def encomenda_entregar(request, pk):
     return render(request, 'portaria/encomenda_entregar_confirm.html', {'encomenda': enc})
 
 
+#@login_required
+#def acesso_list(request):
+#    eventos = EventoAcesso.objects.select_related('condominio', 'unidade').order_by('-criado_em')[:200]
+#    return render(request, 'portaria/acesso_list.html', {'eventos': eventos})
+
 @login_required
 def acesso_list(request):
-    eventos = EventoAcesso.objects.select_related('condominio', 'unidade').order_by('-criado_em')[:200]
-    return render(request, 'portaria/acesso_list.html', {'eventos': eventos})
+    conds = allowed_condominios_for(request.user)
+    eventos = (EventoAcesso.objects
+               .select_related("condominio", "unidade")
+               .filter(condominio__in=conds)
+               .order_by("-criado_em"))
+    return render(request, "portaria/acesso_list.html", {"eventos": eventos})
 
 
 @login_required

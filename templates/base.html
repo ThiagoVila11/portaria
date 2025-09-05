@@ -176,10 +176,8 @@
                 {% for g in request.user.groups.all %}<span class="tag">{{ g.name }}</span>{% empty %}<span class="tag">Sem grupo</span>{% endfor %}
               </div>
             </div>
-            <form method="post" action="{% url 'logout' %}" style="margin:0">
-              {% csrf_token %}
-               <button type="submit" class="btn-outline">Sair</button>
-            </form>
+            <a class="btn-outline" href="{% url 'logout' %}">Sair</a>
+
 
           </div>
           {% else %}

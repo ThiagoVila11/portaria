@@ -16,7 +16,7 @@ environ.Env.read_env(BASE_DIR / '.env')
 
 DEBUG = env('DEBUG')
 SECRET_KEY = env('SECRET_KEY')
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "10.1.10.86"] #env.list('ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
 
 
 # Banco de dados via DATABASE_URL
@@ -52,6 +52,9 @@ SECRET_KEY = 'django-insecure-^wq#(p+95ttzj=p5x_leersh#k#cag$zb+u_drhx8%$n!r=_bt
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "dashboard"
+LOGOUT_REDIRECT_URL = "login"
 ALLOWED_HOSTS = ['*']
 
 
@@ -71,14 +74,15 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",   # ← aqui
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
 
 ROOT_URLCONF = 'condominio_portaria.urls'
 
@@ -97,11 +101,6 @@ TEMPLATES = [
         },
     },
 ]
-
-# (opcional, mas útil)
-LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/"
 
 WSGI_APPLICATION = 'condominio_portaria.wsgi.application'
 
@@ -124,9 +123,6 @@ SF = {
     "SOBJECT":  env("SF_SOBJECT",  default="reda__Visitor_Log__c"),
 }
 
-LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "dashboard"   # após login bem-sucedido
-LOGOUT_REDIRECT_URL = "login"      # redundante se usou next_page, mas ok
 
 
 
