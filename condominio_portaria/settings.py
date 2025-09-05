@@ -67,10 +67,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
     # apps do projeto
-    'accounts',
+    #'accounts',  # <-- descomente se não usar apps.py
+    "accounts.apps.AccountsConfig",
     'condominio',
     'portaria',
+    
 ]
 
 MIDDLEWARE = [

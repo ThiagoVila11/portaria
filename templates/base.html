@@ -172,12 +172,41 @@
             <div>
               <div class="uname">{{ request.user.get_full_name|default:request.user.username }}</div>
               <div class="muted">{{ request.user.email }}</div>
-              <div class="utags">
-                {% for g in request.user.groups.all %}<span class="tag">{{ g.name }}</span>{% empty %}<span class="tag">Sem grupo</span>{% endfor %}
-              </div>
-            </div>
-            <a class="btn-outline" href="{% url 'logout' %}">Sair</a>
 
+              <!-- Grupos -->
+              <div class="utags" style="margin-top:6px">
+                {% for g in request.user.groups.all %}
+                  <span class="tag">{{ g.name }}</span>
+                {% empty %}
+                  <span class="tag">Sem grupo</span>
+                {% endfor %}
+              </div>
+
+              <!-- Condomínios com acesso -->
+              {% if request.session.is_admin_like %}
+                <div class="muted" style="margin-top:8px">Acesso: <strong>Todos os condomínios</strong></div>
+              {% else %}
+                <div class="utags" style="margin-top:6px">
+                  {% if request.session.allowed_condominios %}
+                    {% for c in request.session.allowed_condominios %}
+                      <span class="tag">{{ c.nome }}</span>
+                    {% endfor %}
+                  {% else %}
+                    {% with condos=request.user.condominios_permitidos.all %}
+                      {% if condos %}
+                        {% for c in condos %}
+                          <span class="tag">{{ c.nome }}</span>
+                        {% endfor %}
+                      {% else %}
+                        <span class="tag">Sem condomínio</span>
+                      {% endif %}
+                    {% endwith %}
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+
+            <a class="btn-outline" href="{% url 'logout' %}">Sair</a>
 
           </div>
           {% else %}
