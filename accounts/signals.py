@@ -4,7 +4,9 @@ from django.dispatch import receiver
 from .models import Perfil
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from portaria.permissions import allowed_condominios_for
-
+from django.db import transaction
+from django.utils import timezone
+from integrations.sf_tickets import sync_encomenda_to_salesforce
 
 
 @receiver(post_save, sender=User)
@@ -40,3 +42,5 @@ def clear_condos_on_logout(sender, request, user, **kwargs):
         return
     for key in ("allowed_condominios", "allowed_condominio_ids", "is_admin_like"):
         request.session.pop(key, None)
+
+

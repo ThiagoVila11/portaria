@@ -13,6 +13,7 @@ class Condominio(models.Model):
         blank=True,
         related_name="condominios_permitidos",
     )
+    sf_property_id = models.CharField("Salesforce Property Id", max_length=18, blank=True)
 
     def __str__(self):
         return self.nome
@@ -44,6 +45,7 @@ class Morador(models.Model):
     documento = models.CharField(max_length=20, blank=True)  # CPF/RG
     unidade = models.ForeignKey(Unidade, on_delete=models.PROTECT, related_name="moradores")
     ativo = models.BooleanField(default=True)
+    sf_contact_id = models.CharField("Salesforce Contact Id", max_length=18, blank=True)
 
     def __str__(self):
         return f"{self.nome} ({self.unidade})"

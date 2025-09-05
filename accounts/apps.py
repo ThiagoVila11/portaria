@@ -5,5 +5,5 @@ class AccountsConfig(AppConfig):
     name = "accounts"
 
     def ready(self):
-        # importa os receivers
-        import accounts.signals  # noqa: F401
+        import accounts.signals  # noqa
+

@@ -1,6 +1,7 @@
 from pathlib import Path
 from pathlib import Path
 import environ
+import os
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -18,6 +19,12 @@ DEBUG = env('DEBUG')
 SECRET_KEY = env('SECRET_KEY')
 ALLOWED_HOSTS = ["127.0.0.1", "localhost", "10.1.10.86"] #env.list('ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
 
+
+SF_USERNAME = os.getenv("SF_USERNAME")       # integracao@...
+SF_PASSWORD = os.getenv("SF_PASSWORD")
+SF_TOKEN    = os.getenv("SF_TOKEN")
+SF_DOMAIN   = os.getenv("SF_DOMAIN", "login")   # "test" p/ sandbox
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")    # se for usar OCR
 
 # Banco de dados via DATABASE_URL
 DATABASES = {
@@ -71,8 +78,8 @@ INSTALLED_APPS = [
     # apps do projeto
     #'accounts',  # <-- descomente se não usar apps.py
     "accounts.apps.AccountsConfig",
+    "portaria.apps.PortariaConfig",
     'condominio',
-    'portaria',
     
 ]
 

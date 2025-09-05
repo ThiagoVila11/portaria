@@ -55,6 +55,16 @@
       </tr>
       {% for e in encomendas %}
       <tr>
+        <td>
+          {% if perms.portaria.delete_encomenda %}
+            <form method="post" action="{% url 'encomenda_delete' e.id %}"
+                  style="display:inline"
+                  onsubmit="return confirm('Excluir a encomenda #{{ e.id }} de {{ e.destinatario }}? Esta ação não pode ser desfeita.');">
+              {% csrf_token %}
+              <button class="btn-outline" style="border-color:#dc2626; color:#dc2626">Excluir</button>
+            </form>
+          {% endif %}
+        </td>
         <td>{{ e.id }}</td>
         <td>{{ e.condominio }}</td>
         <td>{{ e.unidade }}</td>

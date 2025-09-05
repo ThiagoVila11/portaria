@@ -28,6 +28,8 @@ class Encomenda(models.Model):
     foto = models.ImageField(upload_to='encomendas/fotos/', blank=True)
     assinatura_entrega = models.ImageField(upload_to='encomendas/assinaturas/', blank=True)
     observacoes = models.TextField(blank=True)
+    etiqueta_imagem = models.ImageField(upload_to="labels/", blank=True, null=True)  # OPCIONAL
+    salesforce_ticket_id = models.CharField(max_length=18, blank=True) 
 
 
     class Meta:

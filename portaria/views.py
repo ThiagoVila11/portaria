@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required, permission_required
+from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect, get_object_or_404
 from portaria.permissions import allowed_condominios_for
 from django.utils import timezone
@@ -7,6 +8,7 @@ from condominio.models import Condominio, Unidade, Morador
 from portaria.models import EventoAcesso, Encomenda
 from condominio.models import Condominio, Unidade
 from django.utils.dateparse import parse_date
+from django.contrib import messages
 
 
 @login_required
@@ -223,6 +225,27 @@ def acesso_create(request):
         'resultados': ResultadoAcesso.choices,
     })
 
+@login_required
+@permission_required('portaria.delete_encomenda', raise_exception=True)
+@require_POST
+def encomenda_delete(request, pk):
+    # só permite excluir encomendas de condomínios que o usuário pode ver
+    allowed = allowed_condominios_for(request.user)
+    encomenda = get_object_or_404(Encomenda, pk=pk, condominio__in=allowed)
+
+    encomenda.delete()
+    messages.success(request, f'Encomenda #{pk} excluída com sucesso.')
+    return redirect('encomenda_list')
+
+@login_required
+@permission_required('portaria.delete_eventoacesso', raise_exception=True)
+@require_POST
+def acesso_delete(request, pk):
+    allowed = allowed_condominios_for(request.user)
+    evento = get_object_or_404(EventoAcesso, pk=pk, condominio__in=allowed)
+    evento.delete()
+    messages.success(request, 'Registro de acesso excluído com sucesso.')
+    return redirect('acesso_list')
 
 #from .models import TipoPessoa, MetodoAcesso, ResultadoAcesso
 #return render(request, 'portaria/acesso_form.html', {

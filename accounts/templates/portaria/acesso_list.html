@@ -58,6 +58,17 @@
       </tr>
       {% for a in eventos %}
       <tr>
+        <td>
+          {% if perms.portaria.delete_eventoacesso %}
+            <form method="post"
+                  action="{% url 'acesso_delete' a.id %}"
+                  style="display:inline"
+                  onsubmit="return confirm('Excluir o registro de acesso de {{ a.pessoa_nome }} em {{ a.criado_em|date:'d/m/Y H:i' }}?');">
+              {% csrf_token %}
+              <button class="btn-outline" style="border-color:#dc2626; color:#dc2626">Excluir</button>
+            </form>
+          {% endif %}
+        </td>
         <td>{{ a.criado_em|date:"d/m/Y H:i" }}</td>
         <td>{{ a.condominio }}</td>
         <td>{{ a.pessoa_nome }}</td>
