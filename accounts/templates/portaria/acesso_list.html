@@ -55,10 +55,21 @@
     <table border="1" cellpadding="6" width="100%">
       <tr>
         <th>Data</th><th>Condomínio</th><th>Nome</th><th>Tipo</th><th>Resultado</th><th>Método</th>
+        <th style="white-space:nowrap">Ação</th>
       </tr>
       {% for a in eventos %}
       <tr>
-        <td>
+        <td>{{ a.criado_em|date:"d/m/Y H:i" }}</td>
+        <td>{{ a.condominio }}</td>
+        <td>{{ a.pessoa_nome }}</td>
+        <td>{{ a.get_pessoa_tipo_display }}</td>
+        <td>{{ a.get_resultado_display }}</td>
+        <td>{{ a.get_metodo_display }}</td>
+        <td style="white-space:nowrap">
+          {% if perms.portaria.change_eventoacesso %}
+            <a class="btn-outline" href="{% url 'acesso_edit' a.id %}">Editar</a>
+          {% endif %}
+
           {% if perms.portaria.delete_eventoacesso %}
             <form method="post"
                   action="{% url 'acesso_delete' a.id %}"
@@ -69,16 +80,11 @@
             </form>
           {% endif %}
         </td>
-        <td>{{ a.criado_em|date:"d/m/Y H:i" }}</td>
-        <td>{{ a.condominio }}</td>
-        <td>{{ a.pessoa_nome }}</td>
-        <td>{{ a.get_pessoa_tipo_display }}</td>
-        <td>{{ a.get_resultado_display }}</td>
-        <td>{{ a.get_metodo_display }}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="6">Nenhum evento de acesso encontrado.</td></tr>
+      <tr><td colspan="7">Nenhum evento de acesso encontrado.</td></tr>
       {% endfor %}
     </table>
+
   </div>
 {% endblock %}

@@ -9,7 +9,7 @@ from portaria.models import EventoAcesso, Encomenda
 from condominio.models import Condominio, Unidade
 from django.utils.dateparse import parse_date
 from django.contrib import messages
-from portaria.forms import EncomendaForm
+from portaria.forms import EncomendaForm, EventoAcessoForm
 
 
 @login_required
@@ -199,27 +199,21 @@ def acesso_list(request):
 @login_required
 @permission_required('portaria.pode_registrar_acesso', raise_exception=True)  # <- importante
 def acesso_create(request):
-    if request.method == 'POST':
-        EventoAcesso.objects.create(
-            condominio_id=request.POST.get('condominio'),
-            unidade_id=request.POST.get('unidade') or None,
-            pessoa_tipo=request.POST.get('pessoa_tipo'),
-            pessoa_nome=request.POST.get('pessoa_nome'),
-            documento=request.POST.get('documento', ''),
-            metodo=request.POST.get('metodo'),
-            resultado=request.POST.get('resultado'),
-            motivo_negado=request.POST.get('motivo_negado', ''),
-            criado_por=request.user,
-        )
-        return redirect('acesso_list')
+    if request.method == "POST":
+        form = EventoAcessoForm(request.POST, user=request.user)   # <<< user=
+        if form.is_valid():
+            obj = form.save(commit=False)
+            # se houver campo criado_por, salve quem registrou:
+            if hasattr(obj, "criado_por_id") and not obj.criado_por_id:
+                obj.criado_por = request.user
+            obj.save()
+            form.save_m2m()
+            messages.success(request, "Acesso registrado com sucesso.")
+            return redirect("acesso_list")
+    else:
+        form = EventoAcessoForm(user=request.user)                 # <<< user=
 
-    return render(request, 'portaria/acesso_form.html', {
-        'condominios': Condominio.objects.all(),
-        'unidades': Unidade.objects.all(),
-        'tipos': TipoPessoa.choices,
-        'metodos': MetodoAcesso.choices,
-        'resultados': ResultadoAcesso.choices,
-    })
+    return render(request, "portaria/acesso_form.html", {"form": form})
 
 @login_required
 @permission_required('portaria.delete_encomenda', raise_exception=True)
@@ -260,6 +254,27 @@ def encomenda_edit(request, pk):
         form = EncomendaForm(instance=encomenda, user=request.user)
 
     return render(request, "portaria/encomenda_form.html", {"form": form, "obj": encomenda})
+
+@login_required
+@permission_required("portaria.change_eventoacesso", raise_exception=True)
+def acesso_edit(request, pk):
+    allowed = allowed_condominios_for(request.user)
+    evento = get_object_or_404(EventoAcesso, pk=pk, condominio__in=allowed)
+
+    if request.method == "POST":
+        form = EventoAcessoForm(request.POST, instance=evento, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Registro de acesso atualizado com sucesso.")
+            return redirect("acesso_list")
+
+        return render(request, "portaria/acesso_form.html", {"form": form, "obj": evento}, status=400)
+
+    # GET sempre retorna o form preenchido
+    form = EventoAcessoForm(instance=evento, user=request.user)
+    return render(request, "portaria/acesso_form.html", {"form": form, "obj": evento})
+
+
 #from .models import TipoPessoa, MetodoAcesso, ResultadoAcesso
 #return render(request, 'portaria/acesso_form.html', {
 #    'condominios': Condominio.objects.all(),

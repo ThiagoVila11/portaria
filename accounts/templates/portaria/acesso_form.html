@@ -1,72 +1,70 @@
 {% extends "base.html" %}
-
-{% block title %}Registrar Acesso · Portaria{% endblock %}
-{% block page_title %}Registrar Acesso{% endblock %}
+{% block title %}Novo Acesso · Portaria{% endblock %}
+{% block page_title %}Novo Acesso{% endblock %}
 
 {% block content %}
-  <div class="card" style="padding:16px; max-width:720px">
-    <form method="post">
-      {% csrf_token %}
+<div class="card" style="padding:16px">
+  <form method="post" style="display:grid; gap:12px">
+    {% csrf_token %}
 
-      <div style="display:grid; gap:10px">
-        <label>Condomínio<br>
-          <select name="condominio" required>
-            {% for c in condominios %}
-              <option value="{{ c.id }}">{{ c.nome }}</option>
-            {% endfor %}
-          </select>
-        </label>
+    {% if form.non_field_errors %}
+      <div class="msg error">{{ form.non_field_errors }}</div>
+    {% endif %}
 
-        <label>Unidade (opcional)<br>
-          <select name="unidade">
-            <option value="">—</option>
-            {% for u in unidades %}
-              <option value="{{ u.id }}">{{ u }}</option>
-            {% endfor %}
-          </select>
-        </label>
+    <div style="display:grid; gap:10px; grid-template-columns: repeat(2, minmax(220px, 1fr));">
+      <label style="display:grid; gap:6px">
+        <span>Condomínio</span>
+        {{ form.condominio }}
+        {{ form.condominio.errors }}
+      </label>
 
-        <label>Tipo<br>
-          <select name="pessoa_tipo" required>
-            {% for v,l in tipos %}
-              <option value="{{ v }}">{{ l }}</option>
-            {% endfor %}
-          </select>
-        </label>
+      <label style="display:grid; gap:6px">
+        <span>Unidade (opcional)</span>
+        {{ form.unidade }}
+        {{ form.unidade.errors }}
+      </label>
 
-        <label>Nome<br>
-          <input name="pessoa_nome" required>
-        </label>
+      <label style="display:grid; gap:6px">
+        <span>Tipo</span>
+        {{ form.pessoa_tipo }}
+        {{ form.pessoa_tipo.errors }}
+      </label>
 
-        <label>Documento<br>
-          <input name="documento">
-        </label>
+      <label style="display:grid; gap:6px">
+        <span>Nome</span>
+        {{ form.pessoa_nome }}
+        {{ form.pessoa_nome.errors }}
+      </label>
 
-        <label>Método<br>
-          <select name="metodo" required>
-            {% for v,l in metodos %}
-              <option value="{{ v }}">{{ l }}</option>
-            {% endfor %}
-          </select>
-        </label>
+      <label style="display:grid; gap:6px">
+        <span>Documento</span>
+        {{ form.documento }}
+        {{ form.documento.errors }}
+      </label>
 
-        <label>Resultado<br>
-          <select name="resultado" required>
-            {% for v,l in resultados %}
-              <option value="{{ v }}">{{ l }}</option>
-            {% endfor %}
-          </select>
-        </label>
+      <label style="display:grid; gap:6px">
+        <span>Método</span>
+        {{ form.metodo }}
+        {{ form.metodo.errors }}
+      </label>
 
-        <label>Motivo (se negado)<br>
-          <input name="motivo_negado">
-        </label>
-      </div>
+      <label style="display:grid; gap:6px">
+        <span>Resultado</span>
+        {{ form.resultado }}
+        {{ form.resultado.errors }}
+      </label>
 
-      <div style="display:flex; gap:8px; margin-top:14px">
-        <button class="btn">Salvar</button>
-        <a class="btn-outline" href="{% url 'acesso_list' %}">Voltar</a>
-      </div>
-    </form>
-  </div> 
+      <label style="display:grid; gap:6px; grid-column: 1 / -1;">
+        <span>Motivo (se negado)</span>
+        {{ form.motivo_negado }}
+        {{ form.motivo_negado.errors }}
+      </label>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:8px">
+      <button class="btn" type="submit">Salvar</button>
+      <a class="btn-outline" href="{% url 'acesso_list' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
 {% endblock %}

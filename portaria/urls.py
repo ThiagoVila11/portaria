@@ -16,4 +16,5 @@ path('encomendas/<uuid:pk>/editar/', views.encomenda_edit, name='encomenda_edit'
 path('acessos/', views.acesso_list, name='acesso_list'),
 path('acessos/novo/', views.acesso_create, name='acesso_create'),
 path('acessos/<uuid:pk>/excluir/', views.acesso_delete, name='acesso_delete'),
+path('acessos/<uuid:pk>/editar/', views.acesso_edit, name='acesso_edit'),
 ]
