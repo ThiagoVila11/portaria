@@ -9,6 +9,7 @@ from portaria.models import EventoAcesso, Encomenda
 from condominio.models import Condominio, Unidade
 from django.utils.dateparse import parse_date
 from django.contrib import messages
+from portaria.forms import EncomendaForm
 
 
 @login_required
@@ -98,30 +99,25 @@ def encomenda_list(request):
     }
     return render(request, "portaria/encomenda_list.html", ctx)
 
-
 @login_required
-@permission_required('portaria.add_encomenda', raise_exception=True)
+@permission_required("portaria.pode_registrar_encomenda", raise_exception=True)
 def encomenda_create(request):
-    if request.method == 'POST':
-        condominio_id = request.POST.get('condominio')
-        unidade_id = request.POST.get('unidade')
-        destinatario_id = request.POST.get('destinatario')
-        Encomenda.objects.create(
-        condominio_id=condominio_id,
-        unidade_id=unidade_id,
-        destinatario_id=destinatario_id,
-        transportadora=request.POST.get('transportadora', ''),
-        codigo_rastreamento=request.POST.get('codigo_rastreamento', ''),
-        recebido_por=request.user,
-        observacoes=request.POST.get('observacoes', ''),
-        )
-        return redirect('encomenda_list')
+    if request.method == "POST":
+        form = EncomendaForm(request.POST, request.FILES, user=request.user, is_create=True)
+        if form.is_valid():
+            encomenda = form.save(commit=False)
+            encomenda.recebido_por = request.user
+            encomenda.status = "RECEBIDA"                 # << garante o status
+            if not encomenda.data_recebimento:
+                encomenda.data_recebimento = timezone.now()
+            encomenda.save()
+            form.save_m2m()
+            messages.success(request, f"Encomenda {encomenda.pk} criada com sucesso.")
+            return redirect("encomenda_list")
+    else:
+        form = EncomendaForm(user=request.user, is_create=True)
 
-    return render(request, 'portaria/encomenda_form.html', {
-    'condominios': Condominio.objects.all(),
-    'unidades': Unidade.objects.all(),
-    'moradores': Morador.objects.all(),
-    })
+    return render(request, "portaria/encomenda_form.html", {"form": form})
 
 @login_required
 @permission_required('portaria.pode_entregar_encomenda', raise_exception=True)
@@ -247,6 +243,23 @@ def acesso_delete(request, pk):
     messages.success(request, 'Registro de acesso excluído com sucesso.')
     return redirect('acesso_list')
 
+
+@login_required
+@permission_required("portaria.change_encomenda", raise_exception=True)
+def encomenda_edit(request, pk):
+    allowed = allowed_condominios_for(request.user)
+    encomenda = get_object_or_404(Encomenda, pk=pk, condominio__in=allowed)
+
+    if request.method == "POST":
+        form = EncomendaForm(request.POST, request.FILES, instance=encomenda, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Encomenda {encomenda.pk} atualizada com sucesso.")
+            return redirect("encomenda_list")
+    else:
+        form = EncomendaForm(instance=encomenda, user=request.user)
+
+    return render(request, "portaria/encomenda_form.html", {"form": form, "obj": encomenda})
 #from .models import TipoPessoa, MetodoAcesso, ResultadoAcesso
 #return render(request, 'portaria/acesso_form.html', {
 #    'condominios': Condominio.objects.all(),

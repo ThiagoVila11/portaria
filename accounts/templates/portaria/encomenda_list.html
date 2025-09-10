@@ -49,39 +49,42 @@
     </p>
 
     <table border="1" cellpadding="6" width="100%">
-      <tr>
-        <th>ID</th><th>Condomínio</th><th>Unidade</th><th>Destinatário</th>
-        <th>Status</th><th>Recebida</th><th>Ação</th>
-      </tr>
-      {% for e in encomendas %}
-      <tr>
-        <td>
-          {% if perms.portaria.delete_encomenda %}
-            <form method="post" action="{% url 'encomenda_delete' e.id %}"
-                  style="display:inline"
-                  onsubmit="return confirm('Excluir a encomenda #{{ e.id }} de {{ e.destinatario }}? Esta ação não pode ser desfeita.');">
-              {% csrf_token %}
-              <button class="btn-outline" style="border-color:#dc2626; color:#dc2626">Excluir</button>
-            </form>
-          {% endif %}
-        </td>
-        <td>{{ e.id }}</td>
-        <td>{{ e.condominio }}</td>
-        <td>{{ e.unidade }}</td>
-        <td>{{ e.destinatario }}</td>
-        <td>{{ e.get_status_display }}</td>
-        <td>{{ e.data_recebimento|date:"d/m/Y H:i" }}</td>
-        <td>
-          {% if perms.portaria.pode_entregar_encomenda and e.status == 'RECEBIDA' %}
-            <form method="post" action="{% url 'encomenda_entregar' e.id %}">{% csrf_token %}
-              <button class="btn-outline">Entregar</button>
-            </form>
-          {% endif %}
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="7">Nenhuma encomenda encontrada para o filtro aplicado.</td></tr>
-      {% endfor %}
-    </table>
+    <tr>
+      <th>ID</th><th>Condomínio</th><th>Unidade</th><th>Destinatário</th>
+      <th>Status</th><th>Recebida</th><th style="white-space:nowrap">Ação</th>
+    </tr>
+    {% for e in encomendas %}
+    <tr>
+      <td>{{ e.id }}</td>
+      <td>{{ e.condominio }}</td>
+      <td>{{ e.unidade }}</td>
+      <td>{{ e.destinatario }}</td>
+      <td>{{ e.get_status_display }}</td>
+      <td>{{ e.data_recebimento|date:"d/m/Y H:i" }}</td>
+      <td style="white-space:nowrap">
+        {% if perms.portaria.change_encomenda %}
+          <a class="btn-outline" href="{% url 'encomenda_edit' e.id %}">Editar</a>
+        {% endif %}
+
+        {% if perms.portaria.pode_entregar_encomenda and e.status == 'RECEBIDA' %}
+          <form method="post" action="{% url 'encomenda_entregar' e.id %}" style="display:inline">{% csrf_token %}
+            <button class="btn-outline">Entregar</button>
+          </form>
+        {% endif %}
+
+        {% if perms.portaria.delete_encomenda %}
+          <form method="post" action="{% url 'encomenda_delete' e.id %}" style="display:inline"
+                onsubmit="return confirm('Excluir a encomenda #{{ e.id }} de {{ e.destinatario }}?');">
+            {% csrf_token %}
+            <button class="btn-outline" style="border-color:#dc2626; color:#dc2626">Excluir</button>
+          </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7">Nenhuma encomenda encontrada para o filtro aplicado.</td></tr>
+    {% endfor %}
+  </table>
+
   </div>
 {% endblock %}

@@ -1,49 +1,78 @@
 {% extends "base.html" %}
 
-{% block title %}Receber Encomenda · Portaria{% endblock %}
-{% block page_title %}Receber Encomenda{% endblock %}
+{% block title %}{{ obj|default:"Nova Encomenda" }} · Portaria{% endblock %}
+{% block page_title %}{{ obj|default:"Nova Encomenda" }}{% endblock %}
 
 {% block content %}
-  <div class="card" style="padding:16px; max-width:720px">
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
+<div class="card" style="padding:16px">
+  <form method="post" enctype="multipart/form-data" style="display:grid; gap:12px">
+    {% csrf_token %}
 
-      <div style="display:grid; gap:10px">
-        <label>Condomínio<br>
-          <select name="condominio" required>
-            {% for c in condominios %}<option value="{{ c.id }}">{{ c.nome }}</option>{% endfor %}
-          </select>
-        </label>
-
-        <label>Unidade<br>
-          <select name="unidade" required>
-            {% for u in unidades %}<option value="{{ u.id }}">{{ u }}</option>{% endfor %}
-          </select>
-        </label>
-
-        <label>Destinatário<br>
-          <select name="destinatario" required>
-            {% for m in moradores %}<option value="{{ m.id }}">{{ m.nome }}</option>{% endfor %}
-          </select>
-        </label>
-
-        <label>Transportadora<br>
-          <input name="transportadora">
-        </label>
-
-        <label>Código de rastreio<br>
-          <input name="codigo_rastreamento">
-        </label>
-
-        <label>Observações<br>
-          <textarea name="observacoes" rows="3"></textarea>
-        </label>
+    <!-- Erros gerais -->
+    {% if form.non_field_errors %}
+      <div class="msg error">
+        {{ form.non_field_errors }}
       </div>
+    {% endif %}
 
-      <div style="display:flex; gap:8px; margin-top:14px">
-        <button class="btn">Salvar</button>
-        <a class="btn-outline" href="{% url 'encomenda_list' %}">Voltar</a>
-      </div>
-    </form>
-  </div>
+    <!-- Campos (render explícito, bonito e com erros por campo) -->
+    <div style="display:grid; gap:10px; grid-template-columns: repeat(2, minmax(220px, 1fr));">
+      <label style="display:grid; gap:6px">
+        <span>Condomínio</span>
+        {{ form.condominio }}
+        {{ form.condominio.errors }}
+      </label>
+
+      <label style="display:grid; gap:6px">
+        <span>Unidade</span>
+        {{ form.unidade }}
+        {{ form.unidade.errors }}
+      </label>
+
+      <label style="display:grid; gap:6px; grid-column: 1 / -1;">
+        <span>Destinatário</span>
+        {{ form.destinatario }}
+        {{ form.destinatario.errors }}
+      </label>
+
+      <label style="display:grid; gap:6px">
+        <span>Transportadora</span>
+        {{ form.transportadora }}
+        {{ form.transportadora.errors }}
+      </label>
+
+      <label style="display:grid; gap:6px">
+        <span>Código de rastreio</span>
+        {{ form.codigo_rastreamento }}
+        {{ form.codigo_rastreamento.errors }}
+      </label>
+
+      <label style="display:grid; gap:6px; grid-column: 1 / -1;">
+        <span>Observações</span>
+        {{ form.observacoes }}
+        {{ form.observacoes.errors }}
+      </label>
+
+      {% if form.etiqueta_imagem %}
+      <label style="display:grid; gap:6px">
+        <span>Etiqueta (imagem)</span>
+        {{ form.etiqueta_imagem }}
+        {{ form.etiqueta_imagem.errors }}
+      </label>
+      {% endif %}
+
+      <label style="display:grid; gap:6px">
+        <span>Status</span>
+        {{ form.status }}
+        {{ form.status.errors }}
+      </label>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:8px">
+      <button class="btn" type="submit">Salvar</button>
+      <a class="btn-outline" href="{% url 'encomenda_list' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
 {% endblock %}
+
