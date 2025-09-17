@@ -120,7 +120,7 @@ def encomenda_create(request):
     return render(request, "portaria/encomenda_form.html", {"form": form})
 
 @login_required
-@permission_required('portaria.pode_entregar_encomenda', raise_exception=True)
+#@permission_required('portaria.pode_entregar_encomenda', raise_exception=True)
 def encomenda_entregar(request, pk):
     enc = get_object_or_404(Encomenda, pk=pk)
     if request.method == 'POST':
@@ -137,7 +137,6 @@ def encomenda_entregar(request, pk):
 #    eventos = EventoAcesso.objects.select_related('condominio', 'unidade').order_by('-criado_em')[:200]
 #    return render(request, 'portaria/acesso_list.html', {'eventos': eventos})
 
-@login_required
 @login_required
 def acesso_list(request):
     allowed = allowed_condominios_for(request.user)
@@ -216,7 +215,7 @@ def acesso_create(request):
     return render(request, "portaria/acesso_form.html", {"form": form})
 
 @login_required
-@permission_required('portaria.delete_encomenda', raise_exception=True)
+#@permission_required('portaria.delete_encomenda', raise_exception=True)
 @require_POST
 def encomenda_delete(request, pk):
     # só permite excluir encomendas de condomínios que o usuário pode ver
@@ -228,7 +227,7 @@ def encomenda_delete(request, pk):
     return redirect('encomenda_list')
 
 @login_required
-@permission_required('portaria.delete_eventoacesso', raise_exception=True)
+#@permission_required('portaria.delete_eventoacesso', raise_exception=True)
 @require_POST
 def acesso_delete(request, pk):
     allowed = allowed_condominios_for(request.user)
@@ -239,7 +238,7 @@ def acesso_delete(request, pk):
 
 
 @login_required
-@permission_required("portaria.change_encomenda", raise_exception=True)
+#@permission_required("portaria.change_encomenda", raise_exception=True)
 def encomenda_edit(request, pk):
     allowed = allowed_condominios_for(request.user)
     encomenda = get_object_or_404(Encomenda, pk=pk, condominio__in=allowed)
@@ -256,7 +255,7 @@ def encomenda_edit(request, pk):
     return render(request, "portaria/encomenda_form.html", {"form": form, "obj": encomenda})
 
 @login_required
-@permission_required("portaria.change_eventoacesso", raise_exception=True)
+#@permission_required("portaria.change_eventoacesso", raise_exception=True)
 def acesso_edit(request, pk):
     allowed = allowed_condominios_for(request.user)
     evento = get_object_or_404(EventoAcesso, pk=pk, condominio__in=allowed)
