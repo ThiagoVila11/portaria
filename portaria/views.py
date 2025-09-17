@@ -197,7 +197,7 @@ def acesso_list(request):
 
 
 @login_required
-@permission_required('portaria.pode_registrar_acesso', raise_exception=True)  # <- importante
+#@permission_required('portaria.pode_registrar_acesso', raise_exception=True)  # <- importante
 def acesso_create(request):
     if request.method == "POST":
         form = EventoAcessoForm(request.POST, user=request.user)   # <<< user=
