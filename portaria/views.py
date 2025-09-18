@@ -100,7 +100,7 @@ def encomenda_list(request):
     return render(request, "portaria/encomenda_list.html", ctx)
 
 @login_required
-@permission_required("portaria.pode_registrar_encomenda", raise_exception=True)
+#@permission_required("portaria.pode_registrar_encomenda", raise_exception=True)
 def encomenda_create(request):
     if request.method == "POST":
         form = EncomendaForm(request.POST, request.FILES, user=request.user, is_create=True)
