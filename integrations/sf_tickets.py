@@ -6,15 +6,15 @@ from portaria.models import Parametro
 from django.conf import settings
 from core.params import get_param
 
-SF_USERNAME = get_param("SF_USERNAME")
-SF_PASSWORD = get_param("SF_PASSWORD")
-SF_TOKEN    = get_param("SF_TOKEN")
-SF_DOMAIN   = get_param("SF_DOMAIN")
+#SF_USERNAME = get_param("SF_USERNAME")
+#SF_PASSWORD = get_param("SF_PASSWORD")
+#SF_TOKEN    = get_param("SF_TOKEN")
+#SF_DOMAIN   = get_param("SF_DOMAIN")
 
-print(f"SF_USERNAME: {SF_USERNAME}")
-print(f"SF_PASSWORD: {'set' if SF_PASSWORD else 'not set'}") 
-print(f"SF_TOKEN: {'set' if SF_TOKEN else 'not set'}")
-print(f"SF_DOMAIN: {SF_DOMAIN}")
+#print(f"SF_USERNAME: {SF_USERNAME}")
+#print(f"SF_PASSWORD: {'set' if SF_PASSWORD else 'not set'}") 
+#print(f"SF_TOKEN: {'set' if SF_TOKEN else 'not set'}")
+#print(f"SF_DOMAIN: {SF_DOMAIN}")
 
 def sf_connect() -> Salesforce:
     if not all([SF_USERNAME, SF_PASSWORD, SF_TOKEN]):
