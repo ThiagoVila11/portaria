@@ -10,6 +10,8 @@ from condominio.models import Condominio, Unidade
 from django.utils.dateparse import parse_date
 from django.contrib import messages
 from portaria.forms import EncomendaForm, EventoAcessoForm
+from integrations.sf_tickets import sync_encomenda_to_salesforce
+from django.db import transaction
 
 
 @login_required
@@ -101,17 +103,35 @@ def encomenda_list(request):
 
 @login_required
 #@permission_required("portaria.pode_registrar_encomenda", raise_exception=True)
+@permission_required("portaria.pode_registrar_encomenda", raise_exception=True)
 def encomenda_create(request):
     if request.method == "POST":
         form = EncomendaForm(request.POST, request.FILES, user=request.user, is_create=True)
         if form.is_valid():
             encomenda = form.save(commit=False)
             encomenda.recebido_por = request.user
-            encomenda.status = "RECEBIDA"                 # << garante o status
+            encomenda.status = "RECEBIDA"
             if not encomenda.data_recebimento:
                 encomenda.data_recebimento = timezone.now()
             encomenda.save()
             form.save_m2m()
+
+            # dispara a integração APÓS o commit da transação
+            def _after_commit():
+                try:
+                    ticket_id = sync_encomenda_to_salesforce(encomenda)
+                    if ticket_id:
+                        Encomenda.objects.filter(pk=encomenda.pk).update(salesforce_ticket_id=ticket_id)
+                        messages.info(request, f"Ticket criado no Salesforce: {ticket_id}")
+                    else:
+                        # Sem property mapeada ou outro motivo não-crítico
+                        messages.warning(request, "Encomenda salva, mas não foi possível criar o ticket no Salesforce (verifique o 'sf_property_id' do condomínio e o 'sf_contact_id' do destinatário, se aplicável).")
+                except Exception as exc:
+                    # não falha a UX do usuário por causa da integração
+                    messages.warning(request, "Encomenda salva, porém houve erro ao integrar com o Salesforce.")
+
+            transaction.on_commit(_after_commit)
+
             messages.success(request, f"Encomenda {encomenda.pk} criada com sucesso.")
             return redirect("encomenda_list")
     else:

@@ -2,13 +2,19 @@
 import os
 from typing import Optional, Dict
 from simple_salesforce import Salesforce
-
+from portaria.models import Parametro
 from django.conf import settings
+from core.params import get_param
 
-SF_USERNAME = getattr(settings, "SF_USERNAME", None)
-SF_PASSWORD = getattr(settings, "SF_PASSWORD", None)
-SF_TOKEN    = getattr(settings, "SF_TOKEN", None)
-SF_DOMAIN   = getattr(settings, "SF_DOMAIN", "login")
+SF_USERNAME = get_param("SF_USERNAME")
+SF_PASSWORD = get_param("SF_PASSWORD")
+SF_TOKEN    = get_param("SF_TOKEN")
+SF_DOMAIN   = get_param("SF_DOMAIN")
+
+print(f"SF_USERNAME: {SF_USERNAME}")
+print(f"SF_PASSWORD: {'set' if SF_PASSWORD else 'not set'}") 
+print(f"SF_TOKEN: {'set' if SF_TOKEN else 'not set'}")
+print(f"SF_DOMAIN: {SF_DOMAIN}")
 
 def sf_connect() -> Salesforce:
     if not all([SF_USERNAME, SF_PASSWORD, SF_TOKEN]):
@@ -40,6 +46,7 @@ def criar_ticket_salesforce(
         "reda__Received_Date_Time__c":  received_iso,
     }
     # remove chaves None
+    print(f"Payload para criar ticket: {payload}")
     payload = {k:v for k,v in payload.items() if v not in (None, "")}
 
     return sobj.create(payload)
@@ -60,6 +67,7 @@ def sync_encomenda_to_salesforce(encomenda) -> Optional[str]:
     Retorna o ID do ticket criado (ou None em caso de falha).
     """
     cond = encomenda.condominio
+    print(cond.sf_property_id)
     if not getattr(cond, "sf_property_id", ""):
         # Sem mapeamento para Property no SF: não é possível criar o ticket
         return None

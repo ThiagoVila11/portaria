@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Encomenda, EventoAcesso
+from .models import Encomenda, EventoAcesso, Parametro
 
 
 @admin.register(Encomenda)
@@ -14,3 +14,9 @@ class EventoAcessoAdmin(admin.ModelAdmin):
     list_display = ("id", "condominio", "pessoa_nome", "pessoa_tipo", "resultado", "criado_em")
     list_filter = ("condominio", "resultado", "pessoa_tipo")
     search_fields = ("pessoa_nome", "documento")
+
+@admin.register(Parametro)
+class ParametroAdmin(admin.ModelAdmin):
+    list_display = ("id", "ParametroNome", "ParametroValor")
+    list_filter = ("ParametroNome", "ParametroValor")
+    search_fields = ("ParametroNome", "ParametroValor")
