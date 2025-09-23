@@ -13,6 +13,7 @@ from portaria.forms import EncomendaForm, EventoAcessoForm
 from integrations.sf_tickets import sync_encomenda_to_salesforce
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
+from datetime import date
 
 
 @login_required
@@ -48,19 +49,19 @@ def encomenda_list(request):
           .filter(condominio__in=allowed))
 
     # --- valores vindos do GET (se houver) ---
-    condominio_id = request.GET.get("condominio")       # None se não veio no GET
-    dt_ini        = request.GET.get("dt_ini")
-    dt_fim        = request.GET.get("dt_fim")
+    condominio_id  = request.GET.get("condominio")
+    dt_ini         = request.GET.get("dt_ini")
+    dt_fim         = request.GET.get("dt_fim")
     destinatario_q = request.GET.get("destinatario")
 
-    # Detecta "primeira carga": nenhum dos filtros veio no GET
+    # Detecta "primeira carga": nenhum filtro no GET
     initial_load = not any(k in request.GET for k in ["condominio", "dt_ini", "dt_fim", "destinatario"])
 
-    # Defaults de primeira carga
     if initial_load:
-        today = timezone.localdate().isoformat()  # 'YYYY-MM-DD'
-        dt_ini = today
-        dt_fim = today
+        hoje = timezone.localdate()             # objeto date
+        dt_ini = hoje.replace(day=1).isoformat()  # 'YYYY-MM-01'
+        dt_fim = hoje.isoformat()                 # 'YYYY-MM-DD'
+
         if not is_admin_like:
             first_allowed_id = allowed.order_by("nome").values_list("id", flat=True).first()
             condominio_id = str(first_allowed_id) if first_allowed_id else ""
@@ -70,17 +71,16 @@ def encomenda_list(request):
         qs = qs.filter(condominio_id=condominio_id)
 
     if dt_ini:
-        d0 = parse_date(dt_ini)
+        d0 = parse_date(str(dt_ini))
         if d0:
             qs = qs.filter(data_recebimento__date__gte=d0)
 
     if dt_fim:
-        d1 = parse_date(dt_fim)
+        d1 = parse_date(str(dt_fim))
         if d1:
             qs = qs.filter(data_recebimento__date__lte=d1)
 
     if destinatario_q:
-        # Se 'destinatario' for FK (ex.: Morador), filtra pelo campo de nome do relacionado
         field = Encomenda._meta.get_field("destinatario")
         if isinstance(field, models.ForeignKey):
             qs = qs.filter(destinatario__nome__icontains=destinatario_q)
@@ -147,10 +147,9 @@ def encomenda_entregar(request, pk):
     return render(request, 'portaria/encomenda_entregar_confirm.html', {'encomenda': enc})
 
 
-#@login_required
-#def acesso_list(request):
-#    eventos = EventoAcesso.objects.select_related('condominio', 'unidade').order_by('-criado_em')[:200]
-#    return render(request, 'portaria/acesso_list.html', {'eventos': eventos})
+from datetime import date
+from django.utils import timezone
+from django.utils.dateparse import parse_date
 
 @login_required
 def acesso_list(request):
@@ -170,9 +169,9 @@ def acesso_list(request):
     # Primeira carga: nenhum filtro no GET
     initial_load = not any(k in request.GET for k in ["condominio", "dt_ini", "dt_fim", "nome"])
     if initial_load:
-        today_iso = timezone.localdate().isoformat()
-        dt_ini = today_iso
-        dt_fim = today_iso
+        hoje = timezone.localdate()
+        dt_ini = hoje.replace(day=1).isoformat()   # string: "2025-09-01"
+        dt_fim = hoje.isoformat()                  # string: "2025-09-23"
         if not is_admin_like:
             first_allowed_id = allowed.order_by("nome").values_list("id", flat=True).first()
             condominio_id = str(first_allowed_id) if first_allowed_id else ""
@@ -182,12 +181,12 @@ def acesso_list(request):
         qs = qs.filter(condominio_id=condominio_id)
 
     if dt_ini:
-        d0 = parse_date(dt_ini)
+        d0 = parse_date(str(dt_ini))
         if d0:
             qs = qs.filter(criado_em__date__gte=d0)
 
     if dt_fim:
-        d1 = parse_date(dt_fim)
+        d1 = parse_date(str(dt_fim))
         if d1:
             qs = qs.filter(criado_em__date__lte=d1)
 
@@ -208,6 +207,7 @@ def acesso_list(request):
         "total": qs.count(),
     }
     return render(request, "portaria/acesso_list.html", ctx)
+
 
 
 @login_required

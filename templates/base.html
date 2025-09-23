@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}Portaria · Vila 11{% endblock %}</title>
+  <title>{% block title %}Recepção · Vila 11{% endblock %}</title>
   <link rel="icon" href="{% static 'img/favicon.png' %}">
 
   <!-- Tipografia semelhante à do site -->
@@ -118,7 +118,7 @@
       <a href="{% url 'dashboard' %}" class="brand-link">
         
       </a>
-      <div class="name">Portaria</div>
+      <div class="name">Recepção</div>
     </div>
 
     {% with request.resolver_match.url_name as url_name %}
@@ -257,7 +257,7 @@
         {% else %}
           Não autenticado.
         {% endif %}
-        Ambiente interno de portaria.
+        Ambiente interno da Recepção.
       </small>
     </footer>
   </div>
