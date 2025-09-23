@@ -11,6 +11,7 @@ from django.utils.dateparse import parse_date
 from django.contrib import messages
 from portaria.forms import EncomendaForm, EventoAcessoForm
 from integrations.sf_tickets import sync_encomenda_to_salesforce
+from integrations.visitor import get_salesforce_connection, criar_visitor_log_salesforce
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
 from datetime import date
@@ -209,25 +210,37 @@ def acesso_list(request):
     return render(request, "portaria/acesso_list.html", ctx)
 
 
-
 @login_required
-#@permission_required('portaria.pode_registrar_acesso', raise_exception=True)  # <- importante
 def acesso_create(request):
     if request.method == "POST":
-        form = EventoAcessoForm(request.POST, user=request.user)   # <<< user=
+        form = EventoAcessoForm(request.POST, user=request.user)
         if form.is_valid():
-            obj = form.save(commit=False)
-            # se houver campo criado_por, salve quem registrou:
-            if hasattr(obj, "criado_por_id") and not obj.criado_por_id:
-                obj.criado_por = request.user
-            obj.save()
-            form.save_m2m()
-            messages.success(request, "Acesso registrado com sucesso.")
+            acesso = form.save(commit=False)
+            acesso.criado_por = request.user  # 🔹 preencher aqui
+            acesso.save()
+
+            # integração Salesforce...
+            try:
+                sf = get_salesforce_connection()
+                criar_visitor_log_salesforce(
+                    sf=sf,
+                    property_id=acesso.condominio.sf_property_id,
+                    host_contact_id=None,
+                    visitante_nome=acesso.pessoa_nome,
+                    visitante_endereco=str(acesso.unidade) if acesso.unidade else "",
+                    visitante_telefone=acesso.documento,
+                    visitante_email=""
+                )
+                messages.success(request, "Acesso registrado e enviado ao Salesforce.")
+            except Exception as e:
+                messages.error(request, f"Acesso salvo, mas falhou integração SF: {e}")
+
             return redirect("acesso_list")
     else:
-        form = EventoAcessoForm(user=request.user)                 # <<< user=
+        form = EventoAcessoForm(user=request.user)
 
     return render(request, "portaria/acesso_form.html", {"form": form})
+
 
 @login_required
 #@permission_required('portaria.delete_encomenda', raise_exception=True)

@@ -72,7 +72,9 @@ def sync_encomenda_to_salesforce(encomenda) -> Optional[str]:
     Retorna o ID do ticket criado (ou None em caso de falha).
     """
     cond = encomenda.condominio
+    unidades = encomenda.unidade
     print(cond.sf_property_id)
+    print(f"Unidade: {unidades.sf_unidade_id if unidades else 'N/A'}")
     if not getattr(cond, "sf_property_id", ""):
         # Sem mapeamento para Property no SF: não é possível criar o ticket
         return None
@@ -90,7 +92,7 @@ def sync_encomenda_to_salesforce(encomenda) -> Optional[str]:
     print("Conectado ao Salesforce. {sf}")
     res = criar_ticket_salesforce(
         sf=sf,
-        property_id=cond.sf_property_id,
+        property_id= unidades.sf_unidade_id,  #cond.sf_property_id,
         contact_id=contact_id,
         pacote_nome=fields["pacote_nome"],
         pacote_para=fields["pacote_para"],

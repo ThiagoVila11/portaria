@@ -31,6 +31,7 @@ class Unidade(models.Model):
     bloco = models.ForeignKey(Bloco, on_delete=models.CASCADE, related_name="unidades")
     numero = models.CharField(max_length=20)
     andar = models.CharField(max_length=10, blank=True)
+    sf_unidade_id =  models.CharField("Salesforce Property Id", max_length=18, blank=True, default="")
 
     class Meta:
         unique_together = ("bloco", "numero")
