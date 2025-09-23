@@ -117,9 +117,11 @@ def encomenda_create(request):
             form.save_m2m()
 
             # dispara a integração APÓS o commit da transação
+            print("Registrando encomenda, irá tentar criar ticket no Salesforce...")
             def _after_commit():
                 try:
                     ticket_id = sync_encomenda_to_salesforce(encomenda)
+                    print(f"Ticket criado no Salesforce: {ticket_id}")
                     if ticket_id:
                         Encomenda.objects.filter(pk=encomenda.pk).update(salesforce_ticket_id=ticket_id)
                         messages.info(request, f"Ticket criado no Salesforce: {ticket_id}")

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Visitor’s Log (SF) · Portaria{% endblock %}
+{% block page_title %}Visitor’s Log (Salesforce){% endblock %}
+
+{% block content %}
+<div class="card" style="padding:16px">
+  <form method="get" style="display:grid; gap:10px; margin-bottom:12px">
+    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:end">
+      <label style="display:grid; gap:6px">
+        <span>Condomínio</span>
+        <select name="condominio" style="min-width:220px">
+          <option value="">Todos</option>
+          {% for c in condominios %}
+            <option value="{{ c.id }}" {% if q.condominio|default:'' == c.id|stringformat:'s' %}selected{% endif %}>{{ c.nome }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label style="display:grid; gap:6px">
+        <span>Data inicial</span>
+        <input type="date" name="dt_ini" value="{{ q.dt_ini|default:'' }}">
+      </label>
+      <label style="display:grid; gap:6px">
+        <span>Data final</span>
+        <input type="date" name="dt_fim" value="{{ q.dt_fim|default:'' }}">
+      </label>
+      <label style="display:grid; gap:6px">
+        <span>Busca</span>
+        <input type="text" name="q" value="{{ q.q|default:'' }}" placeholder="Nome do visitante">
+      </label>
+      <div style="display:flex; gap:8px">
+        <button class="btn" type="submit">Filtrar</button>
+        <a class="btn-outline" href="{% url 'sf_visitors_list' %}">Limpar</a>
+      </div>
+    </div>
+  </form>
+
+  <p class="muted" style="margin:6px 0 12px">Resultados: <strong>{{ total }}</strong></p>
+
+  <table border="1" cellpadding="6" width="100%">
+    <tr>
+      <th>Id</th><th>Data</th><th>Propriedade</th><th>Visitante</th><th>Tipo</th><th>Resultado</th>
+    </tr>
+    {% for v in logs %}
+    <tr>
+      <td>{{ v.Id }}</td>
+      <td>{{ v.CreatedDate }}</td>
+      <td>{{ v.reda__Property__c }}</td>
+      <td>{{ v.reda__Visitor_Name__c|default:v.Name }}</td>
+      <td>{{ v.reda__Access_Type__c }}</td>
+      <td>{{ v.reda__Result__c }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6">Nenhum registro encontrado.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

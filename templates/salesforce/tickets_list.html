@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Tickets (SF) · Portaria{% endblock %}
+{% block page_title %}Tickets (Salesforce){% endblock %}
+
+{% block content %}
+<div class="card" style="padding:16px">
+  <form method="get" style="display:grid; gap:10px; margin-bottom:12px">
+    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:end">
+      <label style="display:grid; gap:6px">
+        <span>Condomínio</span>
+        <select name="condominio" style="min-width:220px">
+          <option value="">Todos</option>
+          {% for c in condominios %}
+            <option value="{{ c.id }}" {% if q.condominio|default:'' == c.id|stringformat:'s' %}selected{% endif %}>{{ c.nome }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label style="display:grid; gap:6px">
+        <span>Data inicial</span>
+        <input type="date" name="dt_ini" value="{{ q.dt_ini|default:'' }}">
+      </label>
+      <label style="display:grid; gap:6px">
+        <span>Data final</span>
+        <input type="date" name="dt_fim" value="{{ q.dt_fim|default:'' }}">
+      </label>
+      <label style="display:grid; gap:6px">
+        <span>Busca</span>
+        <input type="text" name="q" value="{{ q.q|default:'' }}" placeholder="Nome / Destinatário">
+      </label>
+      <div style="display:flex; gap:8px">
+        <button class="btn" type="submit">Filtrar</button>
+        <a class="btn-outline" href="{% url 'sf_tickets_list' %}">Limpar</a>
+      </div>
+    </div>
+  </form>
+
+  <p class="muted" style="margin:6px 0 12px">Resultados: <strong>{{ total }}</strong></p>
+
+  <table border="1" cellpadding="6" width="100%">
+    <tr>
+      <th>Id</th><th>Data</th><th>Status</th><th>Propriedade</th><th>Nome</th><th>Para</th>
+    </tr>
+    {% for t in tickets %}
+    <tr>
+      <td>{{ t.Id }}</td>
+      <td>{{ t.CreatedDate }}</td>
+      <td>{{ t.reda__Status__c }}</td>
+      <td>{{ t.reda__Property__c }}</td>
+      <td>{{ t.reda__Package_Name__c|default:t.Name }}</td>
+      <td>{{ t.reda__Package_For__c }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6">Nenhum ticket encontrado.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

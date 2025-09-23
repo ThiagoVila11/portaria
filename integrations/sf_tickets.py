@@ -17,9 +17,10 @@ print(f"SF_TOKEN: {'set' if SF_TOKEN else 'not set'}")
 print(f"SF_DOMAIN: {SF_DOMAIN}")
 
 def sf_connect() -> Salesforce:
+    print("Conectando ao Salesforce sf_connect()...")
     if not all([SF_USERNAME, SF_PASSWORD, SF_TOKEN]):
         raise RuntimeError("Credenciais do Salesforce ausentes. Configure SF_USERNAME/SF_PASSWORD/SF_TOKEN.")
-    return Salesforce(username=SF_USERNAME, password=SF_PASSWORD, security_token=SF_TOKEN, domain=SF_DOMAIN)
+    return Salesforce(username=SF_USERNAME, password=SF_PASSWORD, security_token=SF_TOKEN)
 
 def criar_ticket_salesforce(
     sf: Salesforce,
@@ -37,7 +38,7 @@ def criar_ticket_salesforce(
 
     payload = {
         # ajuste se precisar RecordType específico:
-        # "RecordTypeId": "012Np000000RgmLIAS",
+        "RecordTypeId": "012Np000000RgmLIAS",
         "reda__Property__c":            property_id,
         "reda__Contact__c":             contact_id or None,
         "reda__Package_Name__c":        pacote_nome or "",
@@ -48,10 +49,13 @@ def criar_ticket_salesforce(
     # remove chaves None
     print(f"Payload para criar ticket: {payload}")
     payload = {k:v for k,v in payload.items() if v not in (None, "")}
-
-    return sobj.create(payload)
+    print(f"Payload filtrado: {payload}")
+    teste = sobj.create(payload)
+    print(f"Resposta da criação do ticket: {teste}")
+    return teste
 
 def build_package_fields_from_encomenda(encomenda) -> Dict[str, str]:
+    print("Construindo campos do pacote a partir da encomenda...")
     """Deriva campos padrão a partir da Encomenda."""
     nome = getattr(encomenda, "codigo_rastreamento", "") or f"Encomenda {encomenda.pk}"
     para = getattr(getattr(encomenda, "destinatario", None), "nome", "") or str(getattr(encomenda, "destinatario", ""))
@@ -62,6 +66,7 @@ def build_package_fields_from_encomenda(encomenda) -> Dict[str, str]:
     return {"pacote_nome": nome, "pacote_para": para, "pacote_desc": desc}
 
 def sync_encomenda_to_salesforce(encomenda) -> Optional[str]:
+    print("Tentando criar ticket no Salesforce...")
     """
     Cria um reda__Ticket__c no Salesforce a partir da Encomenda.
     Retorna o ID do ticket criado (ou None em caso de falha).
@@ -74,12 +79,15 @@ def sync_encomenda_to_salesforce(encomenda) -> Optional[str]:
 
     contact_id = None
     dest = getattr(encomenda, "destinatario", None)
+    print(f"Destinatário: {dest}")
+    print(f"SF Contact ID do destinatário: {getattr(dest, 'sf_contact_id', '') if dest else 'N/A'}")
     if dest and getattr(dest, "sf_contact_id", ""):
         contact_id = dest.sf_contact_id
 
     fields = build_package_fields_from_encomenda(encomenda)
-
+    print(f"Campos do pacote: {fields}")
     sf = sf_connect()
+    print("Conectado ao Salesforce. {sf}")
     res = criar_ticket_salesforce(
         sf=sf,
         property_id=cond.sf_property_id,
