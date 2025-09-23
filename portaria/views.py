@@ -15,7 +15,7 @@ from integrations.visitor import get_salesforce_connection, criar_visitor_log_sa
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
 from datetime import date
-
+from integrations.allvisitorlogs import sf_connect, get_all_fields, build_where_clause, query_chunk, SOBJECT
 
 @login_required
 def dashboard(request):
@@ -324,3 +324,19 @@ def ajax_moradores_por_unidade(request, unidade_id: int):
     for m in moradores:
         options.append(f'<option value="{m.id}">{m.nome}</option>')
     return HttpResponse("".join(options), content_type="text/html")
+
+@login_required
+def visitantes_preaprovados(request):
+    sf = sf_connect()
+    fields = get_all_fields(sf, SOBJECT)
+    where_clause = build_where_clause(None)  # apenas pré-aprovados
+    recs = query_chunk(sf, SOBJECT, fields, where_clause, limit=100)
+
+    # limpa atributos do Salesforce
+    for r in recs:
+        r.pop("attributes", None)
+
+    return render(request, "portaria/visitantes_preaprovados.html", {
+        "visitantes": recs,
+        "total": len(recs),
+    })

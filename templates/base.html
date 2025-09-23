@@ -140,6 +140,17 @@
         <span>Encomendas</span>
       </a>
 
+      <a class="navitem {% if url_name == 'visitantes_preaprovados' %}active{% endif %}" 
+        href="{% url 'visitantes_preaprovados' %}">
+        <!-- Ícone (um badge por exemplo) -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 8v4l3 3"/>
+        </svg>
+        <span>Pré-Aprovados</span>
+      </a>
+
       {% block sidebar_extra %}
         <a class="navitem {% if url_name == 'sf_tickets_list' %}active{% endif %}" href="{% url 'sf_tickets_list' %}">
           <!-- ícone boleto/etiqueta -->
