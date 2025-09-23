@@ -96,7 +96,7 @@ class EventoAcessoForm(forms.ModelForm):
             "pessoa_tipo",
             "pessoa_nome",
             "documento",
-            "metodo",
+            #"metodo",
             "resultado",
             "motivo_negado",
         ]

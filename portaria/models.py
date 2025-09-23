@@ -60,6 +60,7 @@ class MetodoAcesso(models.TextChoices):
 class ResultadoAcesso(models.TextChoices):
     PERMITIDO = 'OK', 'Permitido'
     NEGADO = 'NO', 'Negado'
+    AGUARDANDO = 'AG', 'Aguardando liberação'
 
 
 class EventoAcesso(models.Model):
