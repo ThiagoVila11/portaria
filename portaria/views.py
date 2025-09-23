@@ -12,6 +12,7 @@ from django.contrib import messages
 from portaria.forms import EncomendaForm, EventoAcessoForm
 from integrations.sf_tickets import sync_encomenda_to_salesforce
 from django.db import transaction
+from django.http import HttpResponse, HttpResponseBadRequest
 
 
 @login_required
@@ -101,37 +102,29 @@ def encomenda_list(request):
     }
     return render(request, "portaria/encomenda_list.html", ctx)
 
+
 @login_required
 #@permission_required("portaria.pode_registrar_encomenda", raise_exception=True)
-@permission_required("portaria.pode_registrar_encomenda", raise_exception=True)
 def encomenda_create(request):
     if request.method == "POST":
         form = EncomendaForm(request.POST, request.FILES, user=request.user, is_create=True)
         if form.is_valid():
             encomenda = form.save(commit=False)
-            encomenda.recebido_por = request.user
             encomenda.status = "RECEBIDA"
+            encomenda.recebido_por = request.user
             if not encomenda.data_recebimento:
                 encomenda.data_recebimento = timezone.now()
             encomenda.save()
             form.save_m2m()
 
-            # dispara a integração APÓS o commit da transação
-            print("Registrando encomenda, irá tentar criar ticket no Salesforce...")
             def _after_commit():
                 try:
                     ticket_id = sync_encomenda_to_salesforce(encomenda)
-                    print(f"Ticket criado no Salesforce: {ticket_id}")
                     if ticket_id:
                         Encomenda.objects.filter(pk=encomenda.pk).update(salesforce_ticket_id=ticket_id)
                         messages.info(request, f"Ticket criado no Salesforce: {ticket_id}")
-                    else:
-                        # Sem property mapeada ou outro motivo não-crítico
-                        messages.warning(request, "Encomenda salva, mas não foi possível criar o ticket no Salesforce (verifique o 'sf_property_id' do condomínio e o 'sf_contact_id' do destinatário, se aplicável).")
-                except Exception as exc:
-                    # não falha a UX do usuário por causa da integração
-                    messages.warning(request, "Encomenda salva, porém houve erro ao integrar com o Salesforce.")
-
+                except Exception:
+                    messages.warning(request, "Encomenda salva, mas houve erro ao integrar com o Salesforce.")
             transaction.on_commit(_after_commit)
 
             messages.success(request, f"Encomenda {encomenda.pk} criada com sucesso.")
@@ -295,12 +288,26 @@ def acesso_edit(request, pk):
     form = EventoAcessoForm(instance=evento, user=request.user)
     return render(request, "portaria/acesso_form.html", {"form": form, "obj": evento})
 
+@login_required
+def ajax_unidades_por_condominio(request, condominio_id: int):
+    unidades = (Unidade.objects
+                .filter(bloco__condominio_id=condominio_id)
+                .select_related("bloco")
+                .order_by("bloco__nome", "numero"))
 
-#from .models import TipoPessoa, MetodoAcesso, ResultadoAcesso
-#return render(request, 'portaria/acesso_form.html', {
-#    'condominios': Condominio.objects.all(),
-#    'unidades': Unidade.objects.all(),
-#    'tipos': TipoPessoa.choices,
-#    'metodos': MetodoAcesso.choices,
-#    'resultados': ResultadoAcesso.choices,
-#    })
+    options = ['<option value="">—</option>']
+    for u in unidades:
+        options.append(f'<option value="{u.id}">{u}</option>')
+    return HttpResponse("".join(options), content_type="text/html")
+
+
+@login_required
+def ajax_moradores_por_unidade(request, unidade_id: int):
+    moradores = (Morador.objects
+                 .filter(unidade_id=unidade_id, ativo=True)
+                 .order_by("nome"))
+
+    options = ['<option value="">—</option>']
+    for m in moradores:
+        options.append(f'<option value="{m.id}">{m.nome}</option>')
+    return HttpResponse("".join(options), content_type="text/html")

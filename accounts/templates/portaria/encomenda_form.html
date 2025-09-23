@@ -17,15 +17,16 @@
 
     <!-- Campos (render explícito, bonito e com erros por campo) -->
     <div style="display:grid; gap:10px; grid-template-columns: repeat(2, minmax(220px, 1fr));">
+
       <label style="display:grid; gap:6px">
         <span>Condomínio</span>
-        {{ form.condominio }}
+        {{ form.condominio}}
         {{ form.condominio.errors }}
       </label>
 
       <label style="display:grid; gap:6px">
         <span>Unidade</span>
-        {{ form.unidade }}
+        {{ form.unidade}}
         {{ form.unidade.errors }}
       </label>
 
@@ -76,3 +77,52 @@
 </div>
 {% endblock %}
 
+{% block extra_js %}
+<script>
+(function(){
+  const $cond = document.querySelector('select[name="condominio"]');
+  const $uni  = document.querySelector('select[name="unidade"]');
+  const $dest = document.querySelector('select[name="destinatario"]');
+
+  async function carregarUnidades(condId){
+    if(!condId){
+      $uni.innerHTML = '<option value="">—</option>';
+      $dest.innerHTML = '<option value="">—</option>';
+      return;
+    }
+    const resp = await fetch(`/ajax/unidades/${condId}/`, {credentials: 'same-origin'});
+    $uni.innerHTML = await resp.text();
+    $dest.innerHTML = '<option value="">—</option>'; // limpa destinatário
+  }
+
+  async function carregarMoradores(uniId){
+    if(!uniId){
+      $dest.innerHTML = '<option value="">—</option>';
+      return;
+    }
+    const resp = await fetch(`/ajax/moradores/${uniId}/`, {credentials: 'same-origin'});
+    $dest.innerHTML = await resp.text();
+  }
+
+  if($cond){
+    $cond.addEventListener('change', function(){
+      carregarUnidades(this.value);
+    });
+  }
+
+  if($uni){
+    $uni.addEventListener('change', function(){
+      carregarMoradores(this.value);
+    });
+  }
+
+  // se já houver valores selecionados (edição ou POST inválido), carrega automaticamente
+  if($cond && $cond.value){
+    carregarUnidades($cond.value);
+  }
+  if($uni && $uni.value){
+    carregarMoradores($uni.value);
+  }
+})();
+</script>
+{% endblock %}
