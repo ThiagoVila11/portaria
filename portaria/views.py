@@ -331,8 +331,11 @@ from condominio.models import Condominio
 
 def consulta_salesforce(limit=200):
     sf = sf_connect()
+    #fields = ["Id", "CreatedDate", "reda__Property__c",
+    #          "reda__Visitor_Name__c", "reda__Access_Type__c",
+    #          "reda__Result__c", "reda__Permitted_Till_Datetime__c"]
     fields = ["Id", "CreatedDate", "reda__Property__c",
-              "reda__Visitor_Name__c", "reda__Access_Type__c",
+              "reda__Access_Type__c",
               "reda__Result__c", "reda__Permitted_Till_Datetime__c"]
     where_clause = build_where_clause(None)  # pode ajustar filtros depois
     recs = query_chunk(sf, SOBJECT, fields, where_clause, limit)

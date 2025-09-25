@@ -106,7 +106,7 @@ def fetch_visitor_logs(*, sf_property_id: Optional[str], dt_ini: Optional[dateti
 
     # Descobre nomes reais de campos no seu org (se existirem)
     fld_property   = _pick_fields(obj, ["reda__Property__c", "Property__c"])
-    fld_visitor    = _pick_fields(obj, ["reda__Visitor_Name__c", "Visitor_Name__c", "VisitorName__c", "reda__Visitor__c", "Contact__c", "reda__Contact__c"])
+    fld_visitor    = "" #_pick_fields(obj, ["reda__Visitor_Name__c", "Visitor_Name__c", "VisitorName__c", "reda__Visitor__c", "Contact__c", "reda__Contact__c"])
     fld_access     = _pick_fields(obj, ["reda__Access_Type__c", "Access_Type__c", "AccessType__c"])
     fld_result     = _pick_fields(obj, ["reda__Result__c", "Result__c", "Access_Result__c"])
 
