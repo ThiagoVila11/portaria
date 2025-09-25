@@ -4,10 +4,10 @@ from simple_salesforce import Salesforce
 import json
 from core.params import get_param
 
-SF_USERNAME = get_param("SF_USERNAME")
-SF_PASSWORD = get_param("SF_PASSWORD")
-SF_TOKEN    = get_param("SF_TOKEN")
-SF_DOMAIN   = get_param("SF_DOMAIN")
+SF_USERNAME = get_param("SF_USERNAME", "xx")
+SF_PASSWORD = get_param("SF_PASSWORD", "xx")
+SF_TOKEN    = get_param("SF_TOKEN", "xx")
+SF_DOMAIN   = get_param("SF_DOMAIN", "xx")
 SOBJECT = "reda__Visitor_Log__c"
 JSON_OUT = "visitor_logs_dump.json"
 

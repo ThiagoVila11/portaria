@@ -6,10 +6,10 @@ from portaria.models import Parametro
 from django.conf import settings
 from core.params import get_param
 
-SF_USERNAME = get_param("SF_USERNAME")
-SF_PASSWORD = get_param("SF_PASSWORD")
-SF_TOKEN    = get_param("SF_TOKEN")
-SF_DOMAIN   = get_param("SF_DOMAIN")
+SF_USERNAME = get_param("SF_USERNAME", "xx")
+SF_PASSWORD = get_param("SF_PASSWORD", "xx")
+SF_TOKEN    = get_param("SF_TOKEN", "xx")
+SF_DOMAIN   = get_param("SF_DOMAIN", "xx")
 
 print(f"SF_USERNAME: {SF_USERNAME}")
 print(f"SF_PASSWORD: {'set' if SF_PASSWORD else 'not set'}") 

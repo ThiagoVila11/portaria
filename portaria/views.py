@@ -17,6 +17,7 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from datetime import date
 from integrations.allvisitorlogs import sf_connect, get_all_fields, build_where_clause, query_chunk, SOBJECT
 
+
 @login_required
 def dashboard(request):
     ctx = {
@@ -325,18 +326,41 @@ def ajax_moradores_por_unidade(request, unidade_id: int):
         options.append(f'<option value="{m.id}">{m.nome}</option>')
     return HttpResponse("".join(options), content_type="text/html")
 
-@login_required
-def visitantes_preaprovados(request):
-    sf = sf_connect()
-    fields = get_all_fields(sf, SOBJECT)
-    where_clause = build_where_clause(None)  # apenas pré-aprovados
-    recs = query_chunk(sf, SOBJECT, fields, where_clause, limit=100)
+from django.utils.dateparse import parse_datetime
+from condominio.models import Condominio
 
-    # limpa atributos do Salesforce
+def consulta_salesforce(limit=200):
+    sf = sf_connect()
+    fields = ["Id", "CreatedDate", "reda__Property__c",
+              "reda__Visitor_Name__c", "reda__Access_Type__c",
+              "reda__Result__c", "reda__Permitted_Till_Datetime__c"]
+    where_clause = build_where_clause(None)  # pode ajustar filtros depois
+    recs = query_chunk(sf, SOBJECT, fields, where_clause, limit)
     for r in recs:
         r.pop("attributes", None)
+    return recs
+
+
+def visitantes_preaprovados(request):
+    data = consulta_salesforce(limit=500)
+    visitantes = []
+
+    for v in data:
+        created = parse_datetime(v.get("CreatedDate"))
+        permitted_till = parse_datetime(v.get("reda__Permitted_Till_Datetime__c"))
+        #cond_id = v.get("reda__Property__c")
+        #cond_nome = Condominio.objects.filter(sf_property_id=cond_id).values_list("nome", flat=True).first() or cond_id
+
+        visitantes.append({
+            #"nome": v.get("reda__Visitor_Name__c"),
+            #"condominio": cond_nome,
+            "created": created,
+            "permitted_till": permitted_till,
+            "tipo": v.get("reda__Access_Type__c"),
+            "resultado": v.get("reda__Result__c"),
+        })
 
     return render(request, "portaria/visitantes_preaprovados.html", {
-        "visitantes": recs,
-        "total": len(recs),
+        "visitantes": visitantes,
+        "total": len(visitantes),
     })

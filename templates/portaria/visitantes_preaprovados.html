@@ -11,16 +11,20 @@
       <th>Condomínio</th>
       <th>Data Criação</th>
       <th>Permitido até</th>
+      <th>Tipo de Acesso</th>
+      <th>Resultado</th>
     </tr>
     {% for v in visitantes %}
     <tr>
-      <td>{{ v.reda__Visitor_Name__c }}</td>
-      <td>{{ v.reda__Property__c }}</td>
-      <td>{{ v.CreatedDate }}</td>
-      <td>{{ v.reda__Permitted_Till_Datetime__c }}</td>
+      <td>{{ v.nome }}</td>
+      <td>{{ v.condominio }}</td>
+      <td>{{ v.created|date:"d/m/Y H:i" }}</td>
+      <td>{{ v.permitted_till|date:"d/m/Y H:i" }}</td>
+      <td>{{ v.tipo }}</td>
+      <td>{{ v.resultado }}</td>
     </tr>
     {% empty %}
-    <tr><td colspan="4">Nenhum visitante pré-aprovado encontrado.</td></tr>
+    <tr><td colspan="6">Nenhum visitante pré-aprovado encontrado.</td></tr>
     {% endfor %}
   </table>
 </div>

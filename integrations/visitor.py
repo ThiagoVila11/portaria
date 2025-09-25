@@ -9,10 +9,10 @@ from core.params import get_param
 # ==============================
 # Config SF (variáveis de ambiente ou fallbacks)
 # ==============================
-SF_USERNAME = get_param("SF_USERNAME")
-SF_PASSWORD = get_param("SF_PASSWORD")
-SF_TOKEN    = get_param("SF_TOKEN")
-SF_DOMAIN   = get_param("SF_DOMAIN")
+SF_USERNAME = get_param("SF_USERNAME", "xx")
+SF_PASSWORD = get_param("SF_PASSWORD", "xx")
+SF_TOKEN    = get_param("SF_TOKEN", "xx")
+SF_DOMAIN   = get_param("SF_DOMAIN", "xx")
 
 # Nome do Objeto de Property (SObject) — AJUSTE se necessário
 PROPERTY_SOBJECT = "reda__Property__c"
