@@ -14,7 +14,7 @@ environ.Env.read_env(BASE_DIR / '.env')
 # Segurança
 DEBUG = env("DEBUG", default=False)
 SECRET_KEY = env("SECRET_KEY")
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost"])
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost", "10.0.10.10"])
 
 # Salesforce
 SF_USERNAME = env("SF_USERNAME", default=None)
