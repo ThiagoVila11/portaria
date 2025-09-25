@@ -345,7 +345,7 @@ def consulta_salesforce(limit=200):
 def visitantes_preaprovados(request):
     sf = sf_connect()
     soql = """
-        SELECT Id, reda__Guest_Name__c, reda__Guest_Phone__c, CreatedDate, reda__Permitted_Till_Datetime__c
+        SELECT Id, reda__Opportunity__c, reda__Guest_Name__c, reda__Property__c, reda__Guest_Phone__c, CreatedDate, reda__Permitted_Till_Datetime__c
         FROM reda__Visitor_Log__c
         WHERE reda__Permitted_Till_Datetime__c != null
         ORDER BY CreatedDate DESC

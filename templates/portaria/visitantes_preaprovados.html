@@ -9,7 +9,8 @@
     <tr>
       <th>Nome</th>
       <th>Fone</th>
-      <th>Condomínio</th>
+      <th>Unidade</th>
+      <th>Morador</th>
       <th>Data Criação</th>
       <th>Permitido até</th>
     </tr>
@@ -17,7 +18,8 @@
     <tr>
       <td>{{ v.reda__Guest_Name__c }}</td>
       <td>{{ v.reda__Guest_Phone__c }}</td>
-      <td>{{ v.condominio }}</td>
+      <td>{{ v.reda__Property__c }}</td>
+      <td>{{ v.reda__Opportunity__c }}</td>
       <td>{{ v.CreatedDate|date:"d/m/Y H:i" }}</td>
       <td>{{ vreda__Permitted_Till_Datetime__c|date:"d/m/Y H:i" }}</td>
     </tr>
