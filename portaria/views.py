@@ -334,9 +334,7 @@ def consulta_salesforce(limit=200):
     #fields = ["Id", "CreatedDate", "reda__Property__c",
     #          "reda__Visitor_Name__c", "reda__Access_Type__c",
     #          "reda__Result__c", "reda__Permitted_Till_Datetime__c"]
-    fields = ["Id", "CreatedDate", "reda__Property__c",
-              "reda__Access_Type__c",
-              "reda__Result__c", "reda__Permitted_Till_Datetime__c"]
+    fields = ["reda__Guest_Name__c"]
     where_clause = build_where_clause(None)  # pode ajustar filtros depois
     recs = query_chunk(sf, SOBJECT, fields, where_clause, limit)
     for r in recs:
@@ -345,25 +343,30 @@ def consulta_salesforce(limit=200):
 
 
 def visitantes_preaprovados(request):
-    data = consulta_salesforce(limit=500)
-    visitantes = []
+    sf = sf_connect()
+    soql = """
+        SELECT Id, reda__Guest_Name__c, reda__Guest_Phone__c, CreatedDate, reda__Permitted_Till_Datetime__c
+        FROM reda__Visitor_Log__c
+        WHERE reda__Permitted_Till_Datetime__c != null
+        ORDER BY CreatedDate DESC
+        LIMIT 500
+    """
+    recs = sf.query_all(soql).get("records", [])
+    for r in recs:
+        r.pop("attributes", None)
 
-    for v in data:
-        created = parse_datetime(v.get("CreatedDate"))
-        permitted_till = parse_datetime(v.get("reda__Permitted_Till_Datetime__c"))
-        #cond_id = v.get("reda__Property__c")
-        #cond_nome = Condominio.objects.filter(sf_property_id=cond_id).values_list("nome", flat=True).first() or cond_id
+        # formata datas com segurança
+        for field in ["CreatedDate", "reda__Permitted_Till_Datetime__c"]:
+            val = r.get(field)
+            if isinstance(val, str):
+                dt = parse_datetime(val)
+                if dt:
+                    r[field] = dt.strftime("%d/%m/%Y %H:%M")
+            else:
+                r[field] = ""
 
-        visitantes.append({
-            #"nome": v.get("reda__Visitor_Name__c"),
-            #"condominio": cond_nome,
-            "created": created,
-            "permitted_till": permitted_till,
-            "tipo": v.get("reda__Access_Type__c"),
-            "resultado": v.get("reda__Result__c"),
-        })
-
-    return render(request, "portaria/visitantes_preaprovados.html", {
-        "visitantes": visitantes,
-        "total": len(visitantes),
-    })
+    ctx = {
+        "visitantes": recs,
+        "total": len(recs)
+    }
+    return render(request, "portaria/visitantes_preaprovados.html", ctx)
