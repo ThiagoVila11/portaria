@@ -25,8 +25,8 @@ def get_param(key, default=None):
         from portaria.models import Parametro
         val = (
             Parametro.objects
-            .filter(chave=key)
-            .values_list("valor", flat=True)
+            .filter(ParametroNome=key)             # ✅ corrige nome do campo
+            .values_list("ParametroValor", flat=True)  # ✅ pega o valor certo
             .first()
         )
         return val if val is not None else default
