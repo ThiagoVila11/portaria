@@ -342,16 +342,33 @@ def consulta_salesforce(limit=200):
     return recs
 
 
+from django.shortcuts import render
+from django.utils.dateparse import parse_datetime
+from integrations.allvisitorlogs import sf_connect
+
+from django.shortcuts import render
+from django.utils.dateparse import parse_datetime
+from integrations.allvisitorlogs import sf_connect
+
 def visitantes_preaprovados(request):
     sf = sf_connect()
     soql = """
-        SELECT Id, reda__Opportunity__c, reda__Guest_Name__c, reda__Property__c, reda__Guest_Phone__c, CreatedDate, reda__Permitted_Till_Datetime__c
+        SELECT Id,
+               reda__Contact__r.Name,
+               reda__Guest_Name__c,
+               reda__Property__c,
+               reda__Guest_Phone__c,
+               CreatedDate,
+               reda__Permitted_Till_Datetime__c,
+               reda__Property__r.Name
+
         FROM reda__Visitor_Log__c
         WHERE reda__Permitted_Till_Datetime__c != null
         ORDER BY CreatedDate DESC
         LIMIT 500
     """
     recs = sf.query_all(soql).get("records", [])
+
     for r in recs:
         r.pop("attributes", None)
 
@@ -359,14 +376,20 @@ def visitantes_preaprovados(request):
         for field in ["CreatedDate", "reda__Permitted_Till_Datetime__c"]:
             val = r.get(field)
             if isinstance(val, str):
+                # normaliza timezone ex.: +0000 → +00:00
+                if len(val) > 5 and (val.endswith("+0000") or val.endswith("-0000") or val[-5:].isdigit()):
+                    val = val[:-2] + ":" + val[-2:]
                 dt = parse_datetime(val)
                 if dt:
-                    r[field] = dt.strftime("%d/%m/%Y %H:%M")
+                    r[field] = dt #.strftime("%d/%m/%Y %H:%M")
+                else:
+                    r[field] = val  # fallback: mostra original
             else:
-                r[field] = ""
+                r[field] = "—"
 
     ctx = {
         "visitantes": recs,
-        "total": len(recs)
+        "total": len(recs),
     }
     return render(request, "portaria/visitantes_preaprovados.html", ctx)
+

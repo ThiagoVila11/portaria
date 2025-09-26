@@ -13,15 +13,17 @@
       <th>Morador</th>
       <th>Data Criação</th>
       <th>Permitido até</th>
+
     </tr>
     {% for v in visitantes %}
     <tr>
       <td>{{ v.reda__Guest_Name__c }}</td>
       <td>{{ v.reda__Guest_Phone__c }}</td>
-      <td>{{ v.reda__Property__c }}</td>
-      <td>{{ v.reda__Opportunity__c }}</td>
+      <td>{{ v.reda__Property__r.Name }}</td>
+      <td>{{ v.reda__Contact__r.Name }}</td>
       <td>{{ v.CreatedDate|date:"d/m/Y H:i" }}</td>
-      <td>{{ vreda__Permitted_Till_Datetime__c|date:"d/m/Y H:i" }}</td>
+      <td>{{ v.reda__Permitted_Till_Datetime__c|date:"d/m/Y H:i" }}</td>
+      
     </tr>
     {% empty %}
     <tr><td colspan="6">Nenhum visitante pré-aprovado encontrado.</td></tr>
