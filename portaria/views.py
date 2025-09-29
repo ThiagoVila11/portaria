@@ -222,10 +222,10 @@ def acesso_create(request):
 
             # integração Salesforce...
             try:
-                sf = get_salesforce_connection()
+                sf = get_salesforce_connection() 
                 criar_visitor_log_salesforce(
                     sf=sf,
-                    property_id=acesso.condominio.sf_property_id,
+                    property_id= acesso.unidade.sf_unidade_id,  #acesso.condominio.sf_property_id,
                     host_contact_id=None,
                     visitante_nome=acesso.pessoa_nome,
                     visitante_endereco=str(acesso.unidade) if acesso.unidade else "",
