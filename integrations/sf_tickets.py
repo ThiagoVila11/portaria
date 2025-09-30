@@ -47,7 +47,7 @@ def criar_ticket_salesforce(
         "reda__Package_Description__c": pacote_desc or "",
         "reda__Received_Date_Time__c":  received_iso,
         "reda__Package_Name__c":        pacote_nome or "",
-        "reda__Package_Type__c":        pacote_tipo or "",
+        "reda__Package_Name__c":        pacote_tipo or "",
     }
     # remove chaves None
     print(f"Payload para criar ticket: {payload}")
@@ -119,4 +119,32 @@ def delete_encomenda_from_salesforce(ticket_id: str) -> bool:
         return True
     except Exception as e:
         print(f"⚠️ Erro ao excluir encomenda no Salesforce: {e}")
+        return False
+
+
+from django.utils import timezone
+
+def update_encomenda_in_salesforce(encomenda):
+    """
+    Atualiza os campos de entrega da encomenda no Salesforce.
+    """
+    if not encomenda.salesforce_ticket_id:
+        return False
+
+    try:
+        sf = sf_connect()
+
+        # Monta payload
+        data = {
+            "reda__Package_Handed_on__c": encomenda.data_entrega.isoformat(),
+            "reda__Package_Handed_To__c": encomenda.destinatario.nome,
+        }
+
+        # Atualiza no objeto correspondente
+        # Ajuste o objeto para o correto da sua org (Case, Ticket__c, Encomenda__c, etc.)
+        sf.reda__Ticket__c.update(encomenda.salesforce_ticket_id, data)
+        return True
+
+    except Exception as e:
+        print(f"⚠️ Erro ao atualizar encomenda no Salesforce: {e}")
         return False

@@ -10,7 +10,7 @@ from condominio.models import Condominio, Unidade
 from django.utils.dateparse import parse_date
 from django.contrib import messages
 from portaria.forms import EncomendaForm, EventoAcessoForm
-from integrations.sf_tickets import sync_encomenda_to_salesforce, delete_encomenda_from_salesforce
+from integrations.sf_tickets import sync_encomenda_to_salesforce, delete_encomenda_from_salesforce, update_encomenda_in_salesforce
 from integrations.visitor import get_salesforce_connection, criar_visitor_log_salesforce
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -160,7 +160,12 @@ def encomenda_entregar(request, pk):
         enc.data_entrega = timezone.now()
         enc.entregue_por = request.user
         enc.save()
-        return redirect('encomenda_list')
+        # 🔑 Atualizar no Salesforce
+        ok = update_encomenda_in_salesforce(enc)
+        if not ok:
+            messages.warning(request, "Encomenda entregue localmente, mas não foi possível atualizar no Salesforce.")
+        else:
+            messages.success(request, f"Encomenda #{enc.pk} entregue e sincronizada no Salesforce.")
     return render(request, 'portaria/encomenda_entregar_confirm.html', {'encomenda': enc})
 
 @login_required

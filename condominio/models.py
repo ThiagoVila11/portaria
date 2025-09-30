@@ -46,6 +46,7 @@ class Morador(models.Model):
     unidade = models.ForeignKey(Unidade, on_delete=models.PROTECT, related_name="moradores")
     ativo = models.BooleanField(default=True)
     sf_contact_id = models.CharField("Salesforce Contact Id", max_length=18, blank=True)
+    sf_opportunity_id = models.CharField("Salesforce Opportunity Id", max_length=18, blank=True)
 
     def __str__(self):
         return f"{self.nome} ({self.unidade})"
