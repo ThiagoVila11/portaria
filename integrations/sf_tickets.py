@@ -112,13 +112,8 @@ def delete_encomenda_from_salesforce(ticket_id: str) -> bool:
         return False
 
     try:
-        sf = Salesforce(
-            username=settings.SF_USERNAME,
-            password=settings.SF_PASSWORD,
-            security_token=settings.SF_TOKEN,
-            domain=settings.SF_DOMAIN,
-        )
-        sf.reda__Ticket__c.delete(ticket_id)  # ajuste o objeto correto, ex.: Encomenda__c
+        sf = sf_connect()  # 👈 reaproveita a função existente
+        sf.reda__Ticket__c.delete(ticket_id)  # ajuste o objeto correto
         return True
     except Exception as e:
         print(f"⚠️ Erro ao excluir encomenda no Salesforce: {e}")
