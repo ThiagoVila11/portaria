@@ -101,6 +101,8 @@ class VisitorLog(models.Model):
 
     imported_at = models.DateTimeField(default=timezone.now)
 
+    sf_visitor_log_id = models.CharField(max_length=32, blank=True)  # VisitorLogId do SF
+
     class Meta:
         indexes = [
             models.Index(fields=["created_date"]),
@@ -117,3 +119,21 @@ class Parametro(models.Model):
 
     def __str__(self):
         return f"{self.ParametroNome}: {self.ParametroValor}"
+
+class Veiculo(models.Model):
+    placa = models.CharField(max_length=10, unique=True)
+    modelo = models.CharField(max_length=50, blank=True)
+    cor = models.CharField(max_length=30, blank=True)
+    condominio = models.ForeignKey(Condominio, on_delete=models.PROTECT)
+    unidade = models.ForeignKey(Unidade, on_delete=models.PROTECT, null=True, blank=True)
+    proprietario = models.ForeignKey(Morador, on_delete=models.PROTECT, null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        permissions = [
+            ("pode_gerenciar_veiculos", "Pode gerenciar veículos cadastrados"),
+        ]
+
+    def __str__(self):
+        return f"{self.placa} - {self.modelo} ({self.cor})"

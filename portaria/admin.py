@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Encomenda, EventoAcesso, Parametro
+from .models import Encomenda, EventoAcesso, Parametro, Veiculo
 
 
 @admin.register(Encomenda)
@@ -20,3 +20,9 @@ class ParametroAdmin(admin.ModelAdmin):
     list_display = ("id", "ParametroNome", "ParametroValor")
     list_filter = ("ParametroNome", "ParametroValor")
     search_fields = ("ParametroNome", "ParametroValor")
+
+@admin.register(Veiculo)
+class VeiculoAdmin(admin.ModelAdmin):
+    list_display = ("id", "placa", "modelo", "cor")
+    list_filter = ("placa", "modelo", "cor")
+    search_fields = ("placa", "modelo", "cor")

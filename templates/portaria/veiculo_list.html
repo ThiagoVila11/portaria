@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Veículos · Recepção{% endblock %}
+{% block page_title %}Veículos Cadastrados{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:16px">
+  <a class="btn" href="{% url 'veiculo_create' %}">Cadastrar veículo</a>
+  <table border="1" cellpadding="6" width="100%" style="margin-top:12px">
+    <tr>
+      <th>Placa</th><th>Modelo</th><th>Cor</th><th>Condomínio</th><th>Unidade</th><th>Proprietário</th>
+    </tr>
+    {% for v in veiculos %}
+    <tr>
+      <td>{{ v.placa }}</td>
+      <td>{{ v.modelo }}</td>
+      <td>{{ v.cor }}</td>
+      <td>{{ v.condominio.nome }}</td>
+      <td>{{ v.unidade.numero }}</td>
+      <td>{{ v.proprietario.nome }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6">Nenhum veículo cadastrado.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

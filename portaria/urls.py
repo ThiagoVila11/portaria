@@ -26,4 +26,7 @@ path("ajax/unidades/<int:condominio_id>/", views.ajax_unidades_por_condominio, n
 path("ajax/moradores/<int:unidade_id>/", views.ajax_moradores_por_unidade, name="ajax_moradores_por_unidade"),
 path("visitantes/preaprovados/", views.visitantes_preaprovados, name="visitantes_preaprovados"),
 
+path("veiculos/", views.veiculo_list, name="veiculo_list"),
+path("veiculos/novo/", views.veiculo_create, name="veiculo_create"),
+
 ]

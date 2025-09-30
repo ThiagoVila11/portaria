@@ -140,9 +140,8 @@
         <span>Encomendas</span>
       </a>
 
-      <a class="navitem {% if url_name == 'visitantes_preaprovados' %}active{% endif %}" 
-        href="{% url 'visitantes_preaprovados' %}">
-        <!-- Ícone (um badge por exemplo) -->
+      <a class="navitem {% if url_name == 'visitantes_preaprovados' %}active{% endif %}" href="{% url 'visitantes_preaprovados' %}">
+        <!-- Ícone pré-aprovados -->
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
@@ -151,26 +150,17 @@
         <span>Pré-Aprovados</span>
       </a>
 
-      {% block sidebar_extra %}
-        <a class="navitem {% if url_name == 'sf_tickets_list' %}active{% endif %}" href="{% url 'sf_tickets_list' %}">
-          <!-- ícone boleto/etiqueta -->
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            <path d="M3.3 7L12 12l8.7-5M12 22V12"/>
-          </svg>
-          <span>Tickets (SF)</span>
-        </a>
-
-        <a class="navitem {% if url_name == 'sf_visitors_list' %}active{% endif %}" href="{% url 'sf_visitors_list' %}">
-          <!-- ícone visitante -->
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20 21a8 8 0 0 0-16 0"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
-          <span>Visitor’s Log (SF)</span>
-        </a>
-      {% endblock %}
-
+      <a class="navitem {% if url_name == 'veiculo_list' %}active{% endif %}" href="{% url 'veiculo_list' %}">
+        <!-- Ícone de carro -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" 
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="11" width="18" height="5" rx="2" ry="2"/>
+          <path d="M5 16v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/>
+          <circle cx="7.5" cy="18.5" r="1.5"/>
+          <circle cx="16.5" cy="18.5" r="1.5"/>
+        </svg>
+        <span>Veículos</span>
+      </a>
     </nav>
     {% endwith %}
 

@@ -3,7 +3,7 @@ from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect, get_object_or_404
 from portaria.permissions import allowed_condominios_for
 from django.utils import timezone
-from .models import Encomenda, EventoAcesso, StatusEncomenda, TipoPessoa, MetodoAcesso, ResultadoAcesso
+from .models import Encomenda, EventoAcesso, StatusEncomenda, TipoPessoa, MetodoAcesso, ResultadoAcesso, Veiculo
 from condominio.models import Condominio, Unidade, Morador
 from portaria.models import EventoAcesso, Encomenda
 from condominio.models import Condominio, Unidade
@@ -16,7 +16,7 @@ from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
 from datetime import date
 from integrations.allvisitorlogs import sf_connect, get_all_fields, build_where_clause, query_chunk, SOBJECT
-
+from .forms import VeiculoForm
 
 @login_required
 def dashboard(request):
@@ -393,3 +393,19 @@ def visitantes_preaprovados(request):
     }
     return render(request, "portaria/visitantes_preaprovados.html", ctx)
 
+@login_required
+def veiculo_list(request):
+    veiculos = Veiculo.objects.select_related("condominio", "unidade", "proprietario")
+    return render(request, "portaria/veiculo_list.html", {"veiculos": veiculos})
+
+@login_required
+#@permission_required("portaria.pode_gerenciar_veiculos")
+def veiculo_create(request):
+    if request.method == "POST":
+        form = VeiculoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("veiculo_list")
+    else:
+        form = VeiculoForm()
+    return render(request, "portaria/veiculo_form.html", {"form": form})

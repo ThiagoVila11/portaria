@@ -1,6 +1,6 @@
 from django import forms
 from condominio.models import Unidade
-from portaria.models import Encomenda, EventoAcesso
+from portaria.models import Encomenda, EventoAcesso, Veiculo
 from portaria.permissions import allowed_condominios_for
 from condominio.models import Morador
 
@@ -100,3 +100,8 @@ class EventoAcessoForm(forms.ModelForm):
             "resultado",
             "motivo_negado",
         ]
+
+class VeiculoForm(forms.ModelForm):
+    class Meta:
+        model = Veiculo
+        fields = ["placa", "modelo", "cor", "condominio", "unidade", "proprietario"]
