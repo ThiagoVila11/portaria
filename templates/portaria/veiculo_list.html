@@ -1,13 +1,36 @@
 {% extends "base.html" %}
+
 {% block title %}Veículos · Recepção{% endblock %}
-{% block page_title %}Veículos Cadastrados{% endblock %}
+{% block page_title %}Veículos{% endblock %}
 
 {% block content %}
 <div class="card" style="padding:16px">
-  <a class="btn" href="{% url 'veiculo_create' %}">Cadastrar veículo</a>
-  <table border="1" cellpadding="6" width="100%" style="margin-top:12px">
+
+  <!-- Formulário de filtro -->
+  <form method="get" style="display:flex; gap:10px; margin-bottom:12px">
+    <label style="display:grid; gap:6px">
+      <span>Placa</span>
+      <input type="text" name="placa" value="{{ q.placa }}" placeholder="Digite a placa">
+    </label>
+    <div style="align-self:end; display:flex; gap:8px">
+      <button class="btn" type="submit">Filtrar</button>
+      <a class="btn-outline" href="{% url 'veiculo_list' %}">Limpar</a>
+    </div>
+  </form>
+
+  <p class="muted" style="margin: 6px 0 12px">
+    Resultados: <strong>{{ total }}</strong>
+  </p>
+
+  <table border="1" cellpadding="6" width="100%">
     <tr>
-      <th>Placa</th><th>Modelo</th><th>Cor</th><th>Condomínio</th><th>Unidade</th><th>Proprietário</th>
+      <th>Placa</th>
+      <th>Modelo</th>
+      <th>Cor</th>
+      <th>Condomínio</th>
+      <th>Unidade</th>
+      <th>Proprietário</th>
+      <th>Registrado em</th>
     </tr>
     {% for v in veiculos %}
     <tr>
@@ -15,11 +38,12 @@
       <td>{{ v.modelo }}</td>
       <td>{{ v.cor }}</td>
       <td>{{ v.condominio.nome }}</td>
-      <td>{{ v.unidade.numero }}</td>
-      <td>{{ v.proprietario.nome }}</td>
+      <td>{{ v.unidade }}</td>
+      <td>{{ v.proprietario }}</td>
+      <td>{{ v.criado_em|date:"d/m/Y H:i" }}</td>
     </tr>
     {% empty %}
-    <tr><td colspan="6">Nenhum veículo cadastrado.</td></tr>
+    <tr><td colspan="7">Nenhum veículo encontrado.</td></tr>
     {% endfor %}
   </table>
 </div>

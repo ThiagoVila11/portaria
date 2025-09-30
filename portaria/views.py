@@ -395,8 +395,30 @@ def visitantes_preaprovados(request):
 
 @login_required
 def veiculo_list(request):
-    veiculos = Veiculo.objects.select_related("condominio", "unidade", "proprietario")
-    return render(request, "portaria/veiculo_list.html", {"veiculos": veiculos})
+    # recupera os condomínios permitidos
+    allowed = allowed_condominios_for(request.user)
+
+    qs = Veiculo.objects.select_related("condominio", "unidade", "proprietario").filter(
+        condominio__in=allowed
+    )
+
+    # Captura valor do filtro
+    placa_q = request.GET.get("placa")
+
+    if placa_q:
+        qs = qs.filter(placa__icontains=placa_q)
+
+    qs = qs.order_by("placa")
+
+    ctx = {
+        "veiculos": qs,
+        "condominios": allowed,  # caso queira exibir filtro por condomínio também
+        "q": {
+            "placa": placa_q or "",
+        },
+        "total": qs.count(),
+    }
+    return render(request, "portaria/veiculo_list.html", ctx)
 
 @login_required
 #@permission_required("portaria.pode_gerenciar_veiculos")
