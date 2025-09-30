@@ -17,6 +17,7 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from datetime import date
 from integrations.allvisitorlogs import sf_connect, get_all_fields, build_where_clause, query_chunk, SOBJECT
 from .forms import VeiculoForm
+from django.http import JsonResponse
 
 @login_required
 def dashboard(request):
@@ -106,10 +107,17 @@ def encomenda_list(request):
 
 
 @login_required
-#@permission_required("portaria.pode_registrar_encomenda", raise_exception=True)
 def encomenda_create(request):
+    allowed_condominios = allowed_condominios_for(request.user)
+
     if request.method == "POST":
-        form = EncomendaForm(request.POST, request.FILES, user=request.user, is_create=True)
+        form = EncomendaForm(
+            request.POST,
+            request.FILES,
+            user=request.user,
+            is_create=True,
+            allowed_condominios=allowed_condominios,  # 🔑 novo
+        )
         if form.is_valid():
             encomenda = form.save(commit=False)
             encomenda.status = "RECEBIDA"
@@ -132,9 +140,14 @@ def encomenda_create(request):
             messages.success(request, f"Encomenda {encomenda.pk} criada com sucesso.")
             return redirect("encomenda_list")
     else:
-        form = EncomendaForm(user=request.user, is_create=True)
+        form = EncomendaForm(
+            user=request.user,
+            is_create=True,
+            allowed_condominios=allowed_condominios,  # 🔑 novo
+        )
 
     return render(request, "portaria/encomenda_form.html", {"form": form})
+
 
 @login_required
 #@permission_required('portaria.pode_entregar_encomenda', raise_exception=True)
@@ -346,10 +359,6 @@ from django.shortcuts import render
 from django.utils.dateparse import parse_datetime
 from integrations.allvisitorlogs import sf_connect
 
-from django.shortcuts import render
-from django.utils.dateparse import parse_datetime
-from integrations.allvisitorlogs import sf_connect
-
 @login_required
 def visitantes_preaprovados(request):
     sf = sf_connect()
@@ -399,6 +408,36 @@ def visitantes_preaprovados(request):
         "total": len(recs),
     }
     return render(request, "portaria/visitantes_preaprovados.html", ctx)
+
+from django.http import JsonResponse
+from django.utils.dateparse import parse_datetime
+
+def visitantes_preaprovados_api(request):
+    sf = sf_connect()
+    soql = """
+        SELECT Id, reda__Active_Lease__c
+        FROM reda__Property__c
+        where reda__Active_Lease__c != null
+        LIMIT 5
+    """
+    recs = sf.query_all(soql).get("records", [])
+    for r in recs:
+        lease = r.get("reda__Active_Lease__c", "")
+        nsoql = """
+                    SELECT Id, reda__Active_Lease__c
+                    FROM Opportunity
+                    where Id = {lease}
+                    LIMIT 5
+                """
+        oportunidade = sf.query_all(nsoql).get("records", [])
+
+    # ✅ Retorna JSON sem filtro
+    return JsonResponse({
+        "visitantes": recs,
+        "leases": lease,
+        oportunidade: oportunidade
+    }, safe=False, json_dumps_params={"ensure_ascii": False})
+
 
 @login_required
 def veiculo_list(request):

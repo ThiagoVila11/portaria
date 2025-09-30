@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views_salesforce as sfv
 from . import views
+from .views import visitantes_preaprovados_api
 
 
 urlpatterns = [
@@ -28,5 +29,7 @@ path("visitantes/preaprovados/", views.visitantes_preaprovados, name="visitantes
 
 path("veiculos/", views.veiculo_list, name="veiculo_list"),
 path("veiculos/novo/", views.veiculo_create, name="veiculo_create"),
+
+path("api/visitantes-preaprovados/", visitantes_preaprovados_api, name="visitantes_preaprovados_api"),
 
 ]

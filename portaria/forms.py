@@ -5,22 +5,26 @@ from portaria.permissions import allowed_condominios_for
 from condominio.models import Morador
 
 class EncomendaForm(forms.ModelForm):
-    def __init__(self, *args, user=None, is_create=False, **kwargs):
+    def __init__(self, *args, user=None, is_create=False, allowed_condominios=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.is_create = is_create
 
-        # --- FILTRAR CONDOMÍNIO PELOS PERMITIDOS DO USUÁRIO (se você usa essa regra) ---
-        # Se você tem a função allowed_condominios_for(user), pode habilitar esta parte:
-        # if user is not None and "condominio" in self.fields:
-        #     self.fields["condominio"].queryset = allowed_condominios_for(user).order_by("nome")
+        # --- FILTRAR CONDOMÍNIO PELOS PERMITIDOS DO USUÁRIO ---
+        if user and not user.is_superuser and "condominio" in self.fields:
+            # se o usuário tiver relação ManyToMany com condomínios
+            if hasattr(user, "condominios_permitidos"):
+                self.fields["condominio"].queryset = user.condominios_permitidos.all().order_by("nome")
+            # ou, se você usar a função utilitária allowed_condominios_for:
+            # self.fields["condominio"].queryset = Condominio.objects.filter(id__in=allowed_condominios_for(user))
 
         # --- CONDOMÍNIO → UNIDADES ---
-        cond_id = (self.data.get("condominio") if self.data else None) \
-                  or getattr(self.instance, "condominio_id", None)
+        cond_id = (
+            self.data.get("condominio") if self.data else None
+        ) or getattr(self.instance, "condominio_id", None)
+
         if cond_id:
             self.fields["unidade"].queryset = (
-                Unidade.objects
-                .filter(bloco__condominio_id=cond_id)
+                Unidade.objects.filter(bloco__condominio_id=cond_id)
                 .select_related("bloco")
                 .order_by("bloco__nome", "numero")
             )
@@ -28,24 +32,25 @@ class EncomendaForm(forms.ModelForm):
             self.fields["unidade"].queryset = Unidade.objects.none()
 
         # --- UNIDADE → MORADORES ---
-        uni_id = (self.data.get("unidade") if self.data else None) \
-                 or getattr(self.instance, "unidade_id", None)
+        uni_id = (
+            self.data.get("unidade") if self.data else None
+        ) or getattr(self.instance, "unidade_id", None)
+
         if uni_id:
             self.fields["destinatario"].queryset = (
-                Morador.objects
-                .filter(unidade_id=uni_id, ativo=True)
+                Morador.objects.filter(unidade_id=uni_id, ativo=True)
                 .order_by("nome")
             )
         else:
             self.fields["destinatario"].queryset = Morador.objects.none()
 
-        # --- ETIQUETA: deixar invisível sempre (ainda assim processa upload se houver) ---
+        # --- ETIQUETA: deixar invisível sempre (mas aceita upload) ---
         if "etiqueta_imagem" in self.fields:
             self.fields["etiqueta_imagem"].widget = forms.ClearableFileInput(
                 attrs={"style": "display:none"}
             )
 
-        # --- STATUS: forçar valor inicial quando é criação ---
+        # --- STATUS: valor inicial quando é criação ---
         if is_create and "status" in self.fields:
             self.fields["status"].initial = "RECEBIDA"
 
@@ -64,6 +69,7 @@ class EncomendaForm(forms.ModelForm):
         widgets = {
             "observacoes": forms.Textarea(attrs={"rows": 3}),
         }
+
 
 
 class EventoAcessoForm(forms.ModelForm):
