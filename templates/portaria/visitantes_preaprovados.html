@@ -4,6 +4,26 @@
 
 {% block content %}
 <div class="card" style="padding:16px">
+
+  <form method="get" style="display:flex; gap:10px; margin-bottom:12px">
+    <label style="display:grid; gap:6px">
+      <span>Condomínio</span>
+      <select name="condominio">
+        <option value="">Todos</option>
+        {% for c in condominios %}
+          <option value="{{ c.id }}" {% if request.GET.condominio == c.id|stringformat:"s" %}selected{% endif %}>
+            {{ c.nome }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <div style="align-self:end">
+      <button class="btn" type="submit">Filtrar</button>
+      <a class="btn-outline" href="{% url 'visitantes_preaprovados' %}">Limpar</a>
+    </div>
+  </form>
+
+
   <p class="muted">Total: <strong>{{ total }}</strong></p>
   <table border="1" cellpadding="6" width="100%">
     <tr>
