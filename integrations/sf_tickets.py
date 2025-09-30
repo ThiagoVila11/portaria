@@ -30,6 +30,7 @@ def criar_ticket_salesforce(
     pacote_para: str,
     pacote_desc: str,
     pacote_tipo: str,
+    pacote_oportunidade: str,
 ) -> Dict:
     sobj = sf.__getattr__("reda__Ticket__c")
 
@@ -46,7 +47,7 @@ def criar_ticket_salesforce(
         "reda__Package_For__c":         pacote_para or "",
         "reda__Package_Description__c": pacote_desc or "",
         "reda__Received_Date_Time__c":  received_iso,
-        "reda__Package_Name__c":        pacote_nome or "",
+        "reda__Opportunity__c":         pacote_oportunidade or "",
         "reda__Package_Name__c":        pacote_tipo or "",
     }
     # remove chaves None
@@ -64,7 +65,8 @@ def build_package_fields_from_encomenda(encomenda) -> Dict[str, str]:
     para = getattr(getattr(encomenda, "destinatario", None), "nome", "") or str(getattr(encomenda, "destinatario", ""))
     desc = getattr(encomenda, "observacoes", "")
     tipo = getattr(encomenda, "PackageName", "")
-    return {"pacote_nome": nome, "pacote_para": para, "pacote_desc": desc, "pacote_tipo": tipo}
+    oportunidade = getattr(encomenda.destinatario, "sf_opportunity_id", "")
+    return {"pacote_nome": nome, "pacote_para": para, "pacote_desc": desc, "pacote_tipo": tipo, "pacote_oportunidade": oportunidade}
 
 def sync_encomenda_to_salesforce(encomenda) -> Optional[str]:
     print("Tentando criar ticket no Salesforce...")
@@ -99,6 +101,7 @@ def sync_encomenda_to_salesforce(encomenda) -> Optional[str]:
         pacote_para=fields["pacote_para"],
         pacote_desc=fields["pacote_desc"],
         pacote_tipo=fields["pacote_tipo"],
+        pacote_oportunidade=fields["pacote_oportunidade"]
     )
     if res.get("success"):
         return res.get("id")
