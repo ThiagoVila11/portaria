@@ -12,6 +12,12 @@ class StatusEncomenda(models.TextChoices):
     ENTREGUE = 'ENTREGUE', 'Entregue ao Morador'
     DEVOLVIDA = 'DEVOLVIDA', 'Devolvida ao Remetente'
 
+class PackageName(models.TextChoices):
+    Ifood = 'iFood', 'iFood'
+    Amazon = 'Amazon', 'Amazon'
+    MercadoLivre = 'Mercado Livre', 'Mercado Livre'
+    Correios = 'Correios', 'Correios'
+    Outros = 'Outros', 'Outros'
 
 class Encomenda(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -30,6 +36,7 @@ class Encomenda(models.Model):
     observacoes = models.TextField(blank=True)
     etiqueta_imagem = models.ImageField(upload_to="labels/", blank=True, null=True)  # OPCIONAL
     salesforce_ticket_id = models.CharField(max_length=18, blank=True) 
+    PackageName = models.CharField(max_length=20, choices=PackageName.choices, blank=True)
 
 
     class Meta:

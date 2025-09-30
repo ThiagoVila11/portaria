@@ -36,16 +36,10 @@
         {{ form.destinatario.errors }}
       </label>
 
-      <label style="display:grid; gap:6px">
-        <span>Transportadora</span>
-        {{ form.transportadora }}
-        {{ form.transportadora.errors }}
-      </label>
-
-      <label style="display:grid; gap:6px">
-        <span>Código de rastreio</span>
-        {{ form.codigo_rastreamento }}
-        {{ form.codigo_rastreamento.errors }}
+      <label style="display:grid; gap:6px; grid-column: 1 / -1;">
+        <span>Tipo </span>
+        {{ form.PackageName }}
+        {{ form.PackageName.errors }}
       </label>
 
       <label style="display:grid; gap:6px; grid-column: 1 / -1;">
@@ -56,7 +50,7 @@
 
       {% if form.etiqueta_imagem %}
       <label style="display:grid; gap:6px">
-        <span>Etiqueta (imagem)</span>
+        <span>Anexo</span>
         {{ form.etiqueta_imagem }}
         {{ form.etiqueta_imagem.errors }}
       </label>

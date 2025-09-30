@@ -71,6 +71,7 @@ class EncomendaForm(forms.ModelForm):
             "transportadora",
             "codigo_rastreamento",
             "observacoes",
+            "PackageName",
             "etiqueta_imagem",
             "status",
         ]

@@ -50,17 +50,24 @@
 
     <table border="1" cellpadding="6" width="100%">
       <tr>
-        <th>ID</th><th>Condomínio</th><th>Unidade</th><th>Destinatário</th>
-        <th>Status</th><th>Recebida</th><th style="white-space:nowrap">Ação</th>
+        <th>ID</th>
+        <th>Unidade</th>
+        <th>Destinatário</th>
+        <th>Recebido em</th>
+        <th>Retirado em</th>
+        <th>Retirado por</th>
+        <th>Status</th>
+        <th style="white-space:nowrap">Ação</th>
       </tr>
       {% for e in encomendas %}
       <tr>
         <td>{{ e.id }}</td>
-        <td>{{ e.condominio }}</td>
         <td>{{ e.unidade }}</td>
         <td>{{ e.destinatario }}</td>
-        <td>{{ e.get_status_display }}</td>
         <td>{{ e.data_recebimento|date:"d/m/Y H:i" }}</td>
+        <td>{{ e.data_entrega|date:"d/m/Y H:i" }}</td>
+        <td>{{ e.recebido_por}}</td>
+        <td>{{ e.get_status_display }}</td>
         <td style="white-space:nowrap">
           
           {% if perms.portaria.pode_entregar_encomenda and e.status == 'RECEBIDA' %}
