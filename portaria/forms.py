@@ -1,11 +1,11 @@
 from django import forms
-from condominio.models import Unidade
+from condominio.models import Unidade, Condominio
 from portaria.models import Encomenda, EventoAcesso, Veiculo
 from portaria.permissions import allowed_condominios_for
 from condominio.models import Morador
 
 class EncomendaForm(forms.ModelForm):
-    def __init__(self, *args, user=None, is_create=False, **kwargs):
+    def __init__(self, *args, user=None, is_create=False, allowed_condominios=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.is_create = is_create
 
