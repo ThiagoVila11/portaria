@@ -10,7 +10,7 @@ from condominio.models import Condominio, Unidade
 from django.utils.dateparse import parse_date
 from django.contrib import messages
 from portaria.forms import EncomendaForm, EventoAcessoForm
-from integrations.sf_tickets import sync_encomenda_to_salesforce
+from integrations.sf_tickets import sync_encomenda_to_salesforce, delete_encomenda_from_salesforce
 from integrations.visitor import get_salesforce_connection, criar_visitor_log_salesforce
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -131,7 +131,9 @@ def encomenda_create(request):
                 try:
                     ticket_id = sync_encomenda_to_salesforce(encomenda)
                     if ticket_id:
-                        Encomenda.objects.filter(pk=encomenda.pk).update(salesforce_ticket_id=ticket_id)
+                        encomenda.salesforce_ticket_id = ticket_id
+                        encomenda.save(update_fields=["salesforce_ticket_id"])
+                        #Encomenda.objects.filter(pk=encomenda.pk).update(salesforce_ticket_id=ticket_id)
                         messages.info(request, f"Ticket criado no Salesforce: {ticket_id}")
                 except Exception:
                     messages.warning(request, "Encomenda salva, mas houve erro ao integrar com o Salesforce.")
@@ -160,6 +162,25 @@ def encomenda_entregar(request, pk):
         enc.save()
         return redirect('encomenda_list')
     return render(request, 'portaria/encomenda_entregar_confirm.html', {'encomenda': enc})
+
+@login_required
+@require_POST
+def encomenda_delete(request, pk):
+    allowed = allowed_condominios_for(request.user)
+    encomenda = get_object_or_404(Encomenda, pk=pk, condominio__in=allowed)
+
+    # tenta excluir no Salesforce antes de apagar localmente
+    if encomenda.salesforce_ticket_id:
+        ok = delete_encomenda_from_salesforce(encomenda.salesforce_ticket_id)
+        if ok:
+            messages.info(request, f"Encomenda também excluída no Salesforce (ID {encomenda.salesforce_ticket_id}).")
+        else:
+            messages.warning(request, f"Encomenda excluída localmente, mas falhou ao excluir no Salesforce.")
+
+    encomenda.delete()
+    messages.success(request, f"Encomenda #{pk} excluída com sucesso.")
+    return redirect("encomenda_list")
+
 
 
 from datetime import date
@@ -254,19 +275,6 @@ def acesso_create(request):
         form = EventoAcessoForm(user=request.user)
 
     return render(request, "portaria/acesso_form.html", {"form": form})
-
-
-@login_required
-#@permission_required('portaria.delete_encomenda', raise_exception=True)
-@require_POST
-def encomenda_delete(request, pk):
-    # só permite excluir encomendas de condomínios que o usuário pode ver
-    allowed = allowed_condominios_for(request.user)
-    encomenda = get_object_or_404(Encomenda, pk=pk, condominio__in=allowed)
-
-    encomenda.delete()
-    messages.success(request, f'Encomenda #{pk} excluída com sucesso.')
-    return redirect('encomenda_list')
 
 @login_required
 #@permission_required('portaria.delete_eventoacesso', raise_exception=True)

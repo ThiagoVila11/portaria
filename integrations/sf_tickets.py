@@ -101,3 +101,25 @@ def sync_encomenda_to_salesforce(encomenda) -> Optional[str]:
     if res.get("success"):
         return res.get("id")
     return None
+
+def delete_encomenda_from_salesforce(ticket_id: str) -> bool:
+    """
+    Exclui a encomenda no Salesforce pelo ID do ticket.
+    Retorna True se excluiu com sucesso, False caso contrário.
+    """
+    print(f"Tentando excluir ticket {ticket_id} no Salesforce...")
+    if not ticket_id:
+        return False
+
+    try:
+        sf = Salesforce(
+            username=settings.SF_USERNAME,
+            password=settings.SF_PASSWORD,
+            security_token=settings.SF_TOKEN,
+            domain=settings.SF_DOMAIN,
+        )
+        sf.reda__Ticket__c.delete(ticket_id)  # ajuste o objeto correto, ex.: Encomenda__c
+        return True
+    except Exception as e:
+        print(f"⚠️ Erro ao excluir encomenda no Salesforce: {e}")
+        return False
