@@ -141,6 +141,7 @@ def update_encomenda_in_salesforce(encomenda):
         data = {
             "reda__Package_Handed_on__c": encomenda.data_entrega.isoformat(),
             "reda__Package_Handed_To__c": encomenda.destinatario.nome,
+            "reda__Status__c": "Handed Over",
         }
 
         # Atualiza no objeto correspondente

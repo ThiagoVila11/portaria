@@ -108,6 +108,7 @@ def encomenda_list(request):
 
 @login_required
 def encomenda_create(request):
+    print("Acessando encomenda_create")
     allowed_condominios = allowed_condominios_for(request.user)
 
     if request.method == "POST":
@@ -116,7 +117,7 @@ def encomenda_create(request):
             request.FILES,
             user=request.user,
             is_create=True,
-            allowed_condominios=allowed_condominios,  # 🔑 novo
+            allowed_condominios=allowed_condominios,
         )
         if form.is_valid():
             encomenda = form.save(commit=False)
@@ -125,19 +126,21 @@ def encomenda_create(request):
             if not encomenda.data_recebimento:
                 encomenda.data_recebimento = timezone.now()
             encomenda.save()
-            form.save_m2m()
 
-            def _after_commit():
+            # 🔑 só sincroniza se ainda não estiver integrado
+            if not encomenda.salesforce_ticket_id:
+                print("Tentando integrar com Salesforce...")
                 try:
                     ticket_id = sync_encomenda_to_salesforce(encomenda)
+                    print(f"Resultado da integração com Salesforce: {ticket_id}")
                     if ticket_id:
                         encomenda.salesforce_ticket_id = ticket_id
                         encomenda.save(update_fields=["salesforce_ticket_id"])
-                        #Encomenda.objects.filter(pk=encomenda.pk).update(salesforce_ticket_id=ticket_id)
                         messages.info(request, f"Ticket criado no Salesforce: {ticket_id}")
                 except Exception:
                     messages.warning(request, "Encomenda salva, mas houve erro ao integrar com o Salesforce.")
-            transaction.on_commit(_after_commit)
+            else:
+                print(f"Encomenda já integrada com Salesforce: {encomenda.salesforce_ticket_id}")
 
             messages.success(request, f"Encomenda {encomenda.pk} criada com sucesso.")
             return redirect("encomenda_list")
@@ -145,7 +148,7 @@ def encomenda_create(request):
         form = EncomendaForm(
             user=request.user,
             is_create=True,
-            allowed_condominios=allowed_condominios,  # 🔑 novo
+            allowed_condominios=allowed_condominios,
         )
 
     return render(request, "portaria/encomenda_form.html", {"form": form})
@@ -541,7 +544,7 @@ def veiculo_create(request):
 def get_all_fields(request):
     """Função utilitária para pegar todos os campos de um objeto Salesforce"""
     sf = sf_connect()
-    object_name = "Contact"
+    object_name = "reda__Vehicle__c"
     limit = 200
     metadata = sf.restful(f"sobjects/{object_name}/describe")
     fields = [f["name"] for f in metadata["fields"]]
@@ -557,4 +560,48 @@ def get_all_fields(request):
 
     return JsonResponse({
         "campos": records,
+    }, safe=False, json_dumps_params={"ensure_ascii": False})
+
+@login_required
+def veiculos_unidades(request):
+    sf = sf_connect()
+    soql = """
+        SELECT Id,
+               Name,
+               Brand__c,
+               reda__Model__c,
+               reda__Property__r.Name,
+               Type__c,
+               reda__Opportunity__c
+        FROM reda__Vehicle__c
+    """
+    recs = sf.query_all(soql).get("records", [])
+
+    # Remove metadados e formata datas
+    for r in recs:
+        r.pop("attributes", None)
+        veiculo_placa = r.get("Name", "")
+        veiculo = Veiculo.objects.filter(placa=veiculo_placa).first()
+        if veiculo:
+            print(f"Veiculo {veiculo.Name} já existe.")
+        else:
+            veiculo = Veiculo.objects.create(
+                placa = veiculo_placa,
+                modelo = r.get("Brand__c", ""),
+                cor = r.get("Type__c", ""),
+                condominio = Condominio.objects.filter(sf_property_id=r.get("reda__Property__r.Name", "")).first(),
+                unidade = Unidade.objects.filter(numero=r.get("reda__Property__r.Name", "")).first(),
+                proprietario = Morador.objects.filter(sf_opportunity_id=r.get("reda__Opportunity__c", "")).first(),
+            )
+
+    # 🔑 Filtro de condomínio
+    allowed = allowed_condominios_for(request.user)
+    allowed_sf_ids = list(Condominio.objects.filter(id__in=allowed)
+                          .values_list("sf_property_id", flat=True))
+
+    if not (request.user.is_superuser or request.user.groups.filter(name="Administrador").exists()):
+        recs = [r for r in recs if r.get("reda__Property__c") in allowed_sf_ids]
+
+    return JsonResponse({
+        "campos": recs,
     }, safe=False, json_dumps_params={"ensure_ascii": False})
