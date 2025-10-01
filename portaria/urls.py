@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views_salesforce as sfv
 from . import views
-from .views import visitantes_preaprovados_api
+from .views import visitantes_preaprovados_api, get_all_fields
 
 
 urlpatterns = [
@@ -31,5 +31,6 @@ path("veiculos/", views.veiculo_list, name="veiculo_list"),
 path("veiculos/novo/", views.veiculo_create, name="veiculo_create"),
 
 path("api/visitantes-preaprovados/", visitantes_preaprovados_api, name="visitantes_preaprovados_api"),
+path("api/get_all_fields/", get_all_fields, name="get_all_fields"),
 
 ]

@@ -4,7 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from portaria.permissions import allowed_condominios_for
 from django.utils import timezone
 from .models import Encomenda, EventoAcesso, StatusEncomenda, TipoPessoa, MetodoAcesso, ResultadoAcesso, Veiculo
-from condominio.models import Condominio, Unidade, Morador
+from condominio.models import Condominio, Unidade, Morador, Bloco
 from portaria.models import EventoAcesso, Encomenda
 from condominio.models import Condominio, Unidade
 from django.utils.dateparse import parse_date
@@ -428,27 +428,74 @@ from django.utils.dateparse import parse_datetime
 def visitantes_preaprovados_api(request):
     sf = sf_connect()
     soql = """
-        SELECT Id, reda__Active_Lease__c
+        SELECT Id, reda__Active_Lease__c, reda__Region__c, Name 
         FROM reda__Property__c
-        where reda__Active_Lease__c != null
-        LIMIT 5
+        where reda__Active_Lease__c != null and reda__Region__c = 'a0sHY000000C1WpYAK'
     """
     recs = sf.query_all(soql).get("records", [])
+    oportunidade = []
     for r in recs:
-        lease = r.get("reda__Active_Lease__c", "")
-        nsoql = """
-                    SELECT Id, reda__Active_Lease__c
-                    FROM Opportunity
-                    where Id = {lease}
-                    LIMIT 5
-                """
-        oportunidade = sf.query_all(nsoql).get("records", [])
+        id_propriedade = r.get("Id", "")
+        lease_id = r.get("reda__Active_Lease__c", "")
+        #adicionar a propriedade
+        condominio_id = r.get("reda__Region__c", "")
+        prop_nome = r.get("Name", "")
+        condominio = Condominio.objects.get(sf_property_id=condominio_id)
+        
+        bloco = Bloco.objects.get(condominio=condominio.pk)
+        unidade = Unidade.objects.filter(bloco=bloco, numero=prop_nome).first()
+        if unidade:
+            print(f"Unidade {unidade.numero} já existe.")
+        else:
+            unidade = Unidade.objects.create(
+                bloco = bloco,
+                numero = prop_nome,
+                andar = "0",
+                sf_unidade_id = id_propriedade
+            )
+            print(f"Unidade criada: {unidade}")
 
-    # ✅ Retorna JSON sem filtro
+            nsoql = f"""
+                        SELECT Id, Name
+                        FROM Opportunity
+                        where Id = '{lease_id}'
+                    """
+            oportunidade = sf.query_all(nsoql).get("records", [])
+            print(f"Oportunidade: {oportunidade}")
+
+            csoql = f"""
+                        SELECT Id, ContactId
+                        from OpportunityContactRole
+                        where OpportunityId = '{lease_id}'
+                    """
+            contatos = sf.query_all(csoql).get("records", [])
+            print(f"Contatos: {contatos}")
+
+            for contato in contatos:
+                contact_id = contato.get("ContactId", "")
+                print(f"ContactId: {contact_id}")
+                ctoql = f"""
+                            SELECT Id, Name
+                            from Contact
+                            where Id = '{contact_id}'
+                    """
+                contato_detalhes = sf.query_all(ctoql).get("records", [])
+                for detalhe in contato_detalhes:
+                    nome = detalhe.get("Name", "")
+                    print(f"Nome: {nome}")
+                    morador = Morador.objects.create(
+                        nome = nome,
+                        documento = detalhe.get("CCpfTxt__c", ""),
+                        unidade = unidade,
+                        sf_contact_id = contact_id,
+                        sf_opportunity_id = lease_id
+                    )
+                    print(f"Morador criado: {morador}")
+
     return JsonResponse({
         "visitantes": recs,
-        "leases": lease,
-        oportunidade: oportunidade
+        "leases": lease_id,
+        "oportunidade": oportunidade,
     }, safe=False, json_dumps_params={"ensure_ascii": False})
 
 
@@ -490,3 +537,24 @@ def veiculo_create(request):
     else:
         form = VeiculoForm()
     return render(request, "portaria/veiculo_form.html", {"form": form})
+
+def get_all_fields(request):
+    """Função utilitária para pegar todos os campos de um objeto Salesforce"""
+    sf = sf_connect()
+    object_name = "Contact"
+    limit = 200
+    metadata = sf.restful(f"sobjects/{object_name}/describe")
+    fields = [f["name"] for f in metadata["fields"]]
+
+    soql = f"SELECT {', '.join(fields)} FROM {object_name} LIMIT {limit}"
+    print(f"Executando SOQL:\n{soql}\n")
+
+    records = sf.query_all(soql)["records"]
+
+    for r in records:
+        r.pop("attributes", None)
+    # ✅ Retorna JSON sem filtro
+
+    return JsonResponse({
+        "campos": records,
+    }, safe=False, json_dumps_params={"ensure_ascii": False})
