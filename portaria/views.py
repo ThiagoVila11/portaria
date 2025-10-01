@@ -570,16 +570,16 @@ def veiculos_unidades(request):
                Name,
                Brand__c,
                reda__Model__c,
-               reda__Property__r.Name,
                Type__c,
+               reda__Color__c,
                reda__Opportunity__c
         FROM reda__Vehicle__c
-    """
+        LIMIT 5
+        """
     recs = sf.query_all(soql).get("records", [])
-
+    print(f"Veículos retornados: {recs}")
     # Remove metadados e formata datas
     for r in recs:
-        r.pop("attributes", None)
         veiculo_placa = r.get("Name", "")
         veiculo = Veiculo.objects.filter(placa=veiculo_placa).first()
         if veiculo:
@@ -588,19 +588,11 @@ def veiculos_unidades(request):
             veiculo = Veiculo.objects.create(
                 placa = veiculo_placa,
                 modelo = r.get("Brand__c", ""),
-                cor = r.get("Type__c", ""),
-                condominio = Condominio.objects.filter(sf_property_id=r.get("reda__Property__r.Name", "")).first(),
-                unidade = Unidade.objects.filter(numero=r.get("reda__Property__r.Name", "")).first(),
-                proprietario = Morador.objects.filter(sf_opportunity_id=r.get("reda__Opportunity__c", "")).first(),
+                cor = r.get("reda__Color__c", ""),
+                #condominio = Condominio.objects.filter(sf_property_id=r.get("reda__Property__r.Name", "")).first(),
+                #unidade = Unidade.objects.filter(numero=r.get("reda__Property__r.Name", "")).first(),
+                #proprietario = Morador.objects.filter(sf_opportunity_id=r.get("reda__Opportunity__c", "")).first(),
             )
-
-    # 🔑 Filtro de condomínio
-    allowed = allowed_condominios_for(request.user)
-    allowed_sf_ids = list(Condominio.objects.filter(id__in=allowed)
-                          .values_list("sf_property_id", flat=True))
-
-    if not (request.user.is_superuser or request.user.groups.filter(name="Administrador").exists()):
-        recs = [r for r in recs if r.get("reda__Property__c") in allowed_sf_ids]
 
     return JsonResponse({
         "campos": recs,

@@ -49,18 +49,10 @@
       </label>
 
       {% if form.etiqueta_imagem %}
-      <label style="display:grid; gap:6px">
-        <span>Anexo</span>
-        {{ form.etiqueta_imagem }}
-        {{ form.etiqueta_imagem.errors }}
-      </label>
+      <input type="hidden" name="etiqueta_imagem" value="">
       {% endif %}
 
-      <label style="display:grid; gap:6px">
-        <span>Status</span>
-        {{ form.status }}
-        {{ form.status.errors }}
-      </label>
+      <input type="hidden" name="status" value="RECEBIDA">
     </div>
 
     <div style="display:flex; gap:8px; margin-top:8px">
