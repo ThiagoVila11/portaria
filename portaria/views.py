@@ -526,6 +526,7 @@ def visitantes_preaprovados_api(request):
 @login_required
 def visitantes_preaprovados(request):
     sf = sf_connect()
+    condominio = request.GET.get("condominio", "").strip()
     soql = """
         SELECT Id,
                reda__Contact__r.Name,
@@ -534,12 +535,21 @@ def visitantes_preaprovados(request):
                reda__Property__r.Name,
                reda__Guest_Phone__c,
                CreatedDate,
-               reda__Permitted_Till_Datetime__c
+               reda__Permitted_Till_Datetime__c,
+               reda__Opportunity__r.reda__Region__c
         FROM reda__Visitor_Log__c
         WHERE reda__Permitted_Till_Datetime__c != null
-        ORDER BY CreatedDate DESC
-        LIMIT 500
     """
+
+    if condominio:
+        sf_property_id = Condominio.objects.filter(id=condominio).values_list("sf_property_id", flat=True).first()
+        if sf_property_id:
+            soql += f" and reda__Opportunity__r.reda__Region__c = '{sf_property_id}'"   
+
+    soql += f"ORDER BY CreatedDate DESC"
+
+    print(f"SOQL final: {soql}")
+            
     recs = sf.query_all(soql).get("records", [])
 
     # Remove metadados e formata datas
@@ -616,7 +626,7 @@ def veiculo_create(request):
 def get_all_fields(request):
     """Função utilitária para pegar todos os campos de um objeto Salesforce"""
     sf = sf_connect()
-    object_name = "Opportunity"
+    object_name = "reda__Visitor_Log__c"
     limit = 200
     metadata = sf.restful(f"sobjects/{object_name}/describe")
     fields = [f["name"] for f in metadata["fields"]]
@@ -645,6 +655,7 @@ def veiculos_unidades(request):
     sf = sf_connect()
 
     placa = request.GET.get("placa", "").strip()
+    condominio = request.GET.get("condominio", "").strip()
 
     soql = """
         SELECT Id,
@@ -660,6 +671,11 @@ def veiculos_unidades(request):
 
     if placa:
         soql += f" WHERE Name LIKE '%{placa}%'"
+
+    if condominio:
+        sf_property_id = Condominio.objects.filter(id=condominio).values_list("sf_property_id", flat=True).first()
+        if sf_property_id:
+            soql += f" WHERE reda__Opportunity__r.reda__Region__c = '{sf_property_id}'"
 
     recs = sf.query_all(soql).get("records", [])
 
@@ -693,8 +709,7 @@ def veiculos_unidades(request):
 def reservas_unidades(request):
     sf = sf_connect()
 
-    placa = request.GET.get("placa", "").strip()
-
+    condominio = request.GET.get("condominio", "").strip()
     soql = """
         SELECT Id,
                 reda__Property__c,
@@ -708,6 +723,10 @@ def reservas_unidades(request):
                 reda__Property__r.Name                
         FROM reda__Booking__c
     """
+    if condominio:
+        sf_property_id = Condominio.objects.filter(id=condominio).values_list("sf_property_id", flat=True).first()
+        if sf_property_id:
+            soql += f" WHERE reda__Opportunity__r.reda__Region__c = '{sf_property_id}'"
 
     recs = sf.query_all(soql).get("records", [])
 
