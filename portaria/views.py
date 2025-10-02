@@ -10,7 +10,7 @@ from condominio.models import Condominio, Unidade
 from django.utils.dateparse import parse_date
 from django.contrib import messages
 from portaria.forms import EncomendaForm, EventoAcessoForm
-from integrations.sf_tickets import sync_encomenda_to_salesforce, delete_encomenda_from_salesforce, update_encomenda_in_salesforce
+from integrations.sf_tickets import sync_encomenda_to_salesforce, delete_encomenda_from_salesforce, update_encomenda_in_salesforce, delete_acesso_from_salesforce
 from integrations.visitor import get_salesforce_connection, criar_visitor_log_salesforce
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -18,6 +18,7 @@ from datetime import date
 from integrations.allvisitorlogs import sf_connect, get_all_fields, build_where_clause, query_chunk, SOBJECT
 from .forms import VeiculoForm
 from django.http import JsonResponse
+from collections import OrderedDict
 
 @login_required
 def dashboard(request):
@@ -263,20 +264,32 @@ def acesso_create(request):
             acesso.save()
 
             # integração Salesforce...
-            try:
-                sf = get_salesforce_connection() 
-                criar_visitor_log_salesforce(
-                    sf=sf,
-                    property_id= acesso.unidade.sf_unidade_id,  #acesso.condominio.sf_property_id,
-                    host_contact_id=None,
-                    visitante_nome=acesso.pessoa_nome,
-                    visitante_endereco=str(acesso.unidade) if acesso.unidade else "",
-                    visitante_telefone=acesso.documento,
-                    visitante_email=""
-                )
-                messages.success(request, "Acesso registrado e enviado ao Salesforce.")
-            except Exception as e:
-                messages.error(request, f"Acesso salvo, mas falhou integração SF: {e}")
+            if not acesso.sf_visitor_log_id:
+                try:
+                    sf = get_salesforce_connection() 
+                    #ticket_id = sync_encomenda_to_salesforce(encomenda)
+                    print("Tentando criar VisitorLog no Salesforce...")
+                    visitor_log_id = criar_visitor_log_salesforce(
+                        sf=sf,
+                        propriedade_id= acesso.unidade.sf_unidade_id, 
+                        oportunidade_id = acesso.responsavel.sf_opportunity_id,
+                        contato_id = acesso.responsavel.sf_contact_id,
+                        resultado = acesso.resultado,
+                        visitante_nome=acesso.pessoa_nome,
+                        visitante_endereco=str(acesso.unidade) if acesso.unidade else "",
+                        visitante_telefone=acesso.pessoa_telefone,
+                        visitante_email="",
+                        visitante_tipo=acesso.pessoa_tipo,
+                    )
+                    print(f"VisitorLog criado no Salesforce: {visitor_log_id}")
+                    if visitor_log_id:
+                        id_visita = visitor_log_id["id"]
+                        acesso.sf_visitor_log_id = id_visita
+                        acesso.save(update_fields=["sf_visitor_log_id"])
+                        messages.info(request, f"Visitante criado no Salesforce: {id_visita}")
+                    messages.success(request, "Acesso registrado e enviado ao Salesforce. {id_visita}")
+                except Exception as e:
+                    messages.error(request, f"Acesso salvo, mas falhou integração SF: {e}")
 
             return redirect("acesso_list")
     else:
@@ -290,6 +303,15 @@ def acesso_create(request):
 def acesso_delete(request, pk):
     allowed = allowed_condominios_for(request.user)
     evento = get_object_or_404(EventoAcesso, pk=pk, condominio__in=allowed)
+
+    # tenta excluir no Salesforce antes de apagar localmente
+    if evento.sf_visitor_log_id:
+        ok = delete_acesso_from_salesforce(evento.sf_visitor_log_id)
+        if ok:
+            messages.info(request, f"Acesso também excluído no Salesforce (ID {evento.sf_visitor_log_id}).")
+        else:
+            messages.warning(request, f"Acesso excluído localmente, mas falhou ao excluir no Salesforce.")
+
     evento.delete()
     messages.success(request, 'Registro de acesso excluído com sucesso.')
     return redirect('acesso_list')
@@ -544,7 +566,7 @@ def veiculo_create(request):
 def get_all_fields(request):
     """Função utilitária para pegar todos os campos de um objeto Salesforce"""
     sf = sf_connect()
-    object_name = "reda__Vehicle__c"
+    object_name = "reda__Visitor_Log__c"
     limit = 200
     metadata = sf.restful(f"sobjects/{object_name}/describe")
     fields = [f["name"] for f in metadata["fields"]]
@@ -597,3 +619,11 @@ def veiculos_unidades(request):
     return JsonResponse({
         "campos": recs,
     }, safe=False, json_dumps_params={"ensure_ascii": False})
+
+@login_required
+def ajax_responsaveis(request, unidade_id):
+    moradores = Morador.objects.filter(unidade_id=unidade_id, ativo=True).order_by("nome")
+    options = ['<option value="">—</option>']
+    for m in moradores:
+        options.append(f'<option value="{m.id}">{m.nome}</option>')
+    return HttpResponse("\n".join(options))

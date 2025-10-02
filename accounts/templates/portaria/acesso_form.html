@@ -24,11 +24,10 @@
         {{ form.unidade.errors }}
       </label>
 
-
       <label style="display:grid; gap:6px">
-        <span>Tipo</span>
-        {{ form.pessoa_tipo }}
-        {{ form.pessoa_tipo.errors }}
+        <span>Responsável (opcional)</span>
+        {{ form.responsavel }}
+        {{ form.responsavel.errors }}
       </label>
 
       <label style="display:grid; gap:6px">
@@ -38,22 +37,24 @@
       </label>
 
       <label style="display:grid; gap:6px">
-        <span>Documento</span>
-        {{ form.documento }}
-        {{ form.documento.errors }}
+        <span>Tipo</span>
+        {{ form.pessoa_tipo }}
+        {{ form.pessoa_tipo.errors }}
       </label>
 
       <label style="display:grid; gap:6px">
-        <span>Resultado</span>
+        <span>Telefone</span>
+        {{ form.pessoa_telefone }}
+        {{ form.pessoa_Telefone.errors }}
+      </label>
+
+
+      <label style="display:grid; gap:6px">
+        <span>Status</span>
         {{ form.resultado }}
         {{ form.resultado.errors }}
       </label>
 
-      <label style="display:grid; gap:6px; grid-column: 1 / -1;">
-        <span>Motivo (se negado)</span>
-        {{ form.motivo_negado }}
-        {{ form.motivo_negado.errors }}
-      </label>
     </div>
 
     <div style="display:flex; gap:8px; margin-top:8px">
@@ -69,25 +70,43 @@
 (function(){
   const $cond = document.querySelector('select[name="condominio"]');
   const $uni  = document.querySelector('select[name="unidade"]');
+  const $resp = document.querySelector('select[name="responsavel"]');
 
   async function carregarUnidades(condId){
     if(!condId){
       $uni.innerHTML = '<option value="">—</option>';
+      $resp.innerHTML = '<option value="">—</option>';
       return;
     }
     const resp = await fetch(`/ajax/unidades/${condId}/`, {credentials: 'same-origin'});
     $uni.innerHTML = await resp.text();
+    $resp.innerHTML = '<option value="">—</option>'; // limpa responsáveis
+  }
+
+  async function carregarResponsaveis(uniId){
+    if(!uniId){
+      $resp.innerHTML = '<option value="">—</option>';
+      return;
+    }
+    const resp = await fetch(`/ajax/responsaveis/${uniId}/`, {credentials: 'same-origin'});
+    $resp.innerHTML = await resp.text();
   }
 
   if($cond){
     $cond.addEventListener('change', ()=> carregarUnidades($cond.value));
   }
 
-  // já carrega na edição
+  if($uni){
+    $uni.addEventListener('change', ()=> carregarResponsaveis($uni.value));
+  }
+
+  // já carrega na edição (condomínio/unidade pré-selecionados)
   if($cond && $cond.value){
     carregarUnidades($cond.value);
+  }
+  if($uni && $uni.value){
+    carregarResponsaveis($uni.value);
   }
 })();
 </script>
 {% endblock %}
-

@@ -1,8 +1,7 @@
 from django import forms
-from condominio.models import Unidade, Condominio
+from condominio.models import Unidade, Condominio, Morador
 from portaria.models import Encomenda, EventoAcesso, Veiculo
 from portaria.permissions import allowed_condominios_for
-from condominio.models import Morador
 
 class EncomendaForm(forms.ModelForm):
     def __init__(self, *args, user=None, is_create=False, allowed_condominios=None, **kwargs):
@@ -79,18 +78,23 @@ class EncomendaForm(forms.ModelForm):
             "observacoes": forms.Textarea(attrs={"rows": 3}),
         }
 
+
 class EventoAcessoForm(forms.ModelForm):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # 🔹 Filtrar os condomínios permitidos para o usuário
+        # 🔹 Filtrar condomínios permitidos
         if user and not user.is_superuser:
             self.fields["condominio"].queryset = user.condominios_permitidos.all()
+        else:
+            self.fields["condominio"].queryset = Condominio.objects.all()
 
-        # 🔹 Filtrar unidades pelo condomínio escolhido
+        # --- CONDOMÍNIO → UNIDADES ---
         cond_id = (
             self.data.get("condominio") if self.data else None
-        ) or getattr(self.instance, "condominio_id", None)
+        ) or getattr(self.instance, "condominio_id", None) or (
+            self.fields["condominio"].initial.id if self.fields["condominio"].initial else None
+        )
 
         if cond_id:
             self.fields["unidade"].queryset = (
@@ -101,18 +105,33 @@ class EventoAcessoForm(forms.ModelForm):
         else:
             self.fields["unidade"].queryset = Unidade.objects.none()
 
+        # --- UNIDADE → MORADORES ---
+        uni_id = (
+            self.data.get("unidade") if self.data else None
+        ) or getattr(self.instance, "unidade_id", None)
+
+        if uni_id:
+            self.fields["responsavel"].queryset = (
+                Morador.objects.filter(unidade_id=uni_id, ativo=True)
+                .order_by("nome")
+            )
+        else:
+            self.fields["responsavel"].queryset = Morador.objects.none()
+
     class Meta:
         model = EventoAcesso
         fields = [
             "condominio",
             "unidade",
+            "responsavel",
             "pessoa_tipo",
             "pessoa_nome",
-            "documento",
-            #"metodo",
+            "pessoa_telefone",
             "resultado",
             "motivo_negado",
         ]
+
+
 
 class VeiculoForm(forms.ModelForm):
     class Meta:

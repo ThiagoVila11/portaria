@@ -114,139 +114,62 @@ def search_contacts_by_name(sf: Salesforce, name_like: str) -> List[Dict]:
 # ==============================
 # Visitor Log creation
 # ==============================
+from typing import Dict
+from simple_salesforce import Salesforce
+from simple_salesforce.exceptions import SalesforceMalformedRequest
+from datetime import datetime, timezone
+import traceback
+
 def criar_visitor_log_salesforce(
     sf: Salesforce,
-    property_id: str,
-    host_contact_id: Optional[str],
+    propriedade_id: str,
+    oportunidade_id: str,
+    contato_id: str,
+    resultado: str,
     visitante_nome: str,
     visitante_endereco: str,
     visitante_telefone: str,
-    visitante_email: str = ""
+    visitante_email: str,
+    visitante_tipo: str,
 ) -> Dict:
-    """
-    Cria reda__Visitor_Log__c preenchendo:
-      - reda__Property__c (obrigatório)
-      - reda__Status__c = "Requested" (se createable e valor permitido)
-      - reda__Check_In_Datetime__c = agora (UTC, ISO 8601)
-      - lookup p/ Contact (morador/host), se existir campo createable e host_contact_id for informado
-      - descrição + possíveis campos Visitor_* se existirem
-      - booleans obrigatórios createable como False
-    """
     sobj = sf.__getattr__("reda__Visitor_Log__c")
-    desc = sobj.describe()
-    campos_info = {f["name"]: f for f in desc["fields"]}
+    print(f"Criando Visitor Log no Salesforce para Property {propriedade_id}, Contact {contato_id}")
 
-    # ===== 1) Monta candidatos base =====
-    candidatos = {
-        "reda__Property__c": property_id,
+    # ISO UTC sem micros, com Z
+    received_iso = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00","Z")
+
+    payload = {
+        "reda__Status__c":        resultado,
+        "reda__Property__c":      propriedade_id or None,
+        "reda__Opportunity__c":   oportunidade_id or None,
+        "reda__Contact__c":       contato_id or None,
+        "Visitor_Type__c":        visitante_tipo or None,   # cuidado: confirme API Name
+        "reda__Guest_Name__c":    visitante_nome,
+        "reda__Guest_Email__c":   visitante_email or None,
+        "reda__Guest_Phone__c":   visitante_telefone or None,
+        "reda__Check_In_Datetime__c": received_iso,
+        #"Is_Pre_approved__c":     False,
+        #"Is_Requested__c":        False,
     }
 
-    # ===== 2) Status = Requested (validando picklist) =====
-    status_info = campos_info.get("reda__Status__c")
-    if status_info and status_info.get("createable"):
-        vs = status_info.get("picklistValues") or []
-        allowed = [v["value"] for v in vs if not v.get("inactive", False)] if vs else None
-        if (allowed is None) or ("Requested" in set(allowed)):
-            candidatos["reda__Status__c"] = "Requested"
-        else:
-            print("[AVISO] 'Requested' não está entre os valores do picklist de reda__Status__c.",
-                  "Valores permitidos:", ", ".join(allowed) if allowed else "(não retornou lista)")
-    else:
-        print("[AVISO] Campo reda__Status__c não é createable ou não existe; pulando o set de Status.")
+    # limpa nulos/vazios
+    payload = {k: v for k, v in payload.items() if v not in (None, "", [])}
+    print("Payload final:", payload)
 
-    # ===== 3) Check-in agora (UTC) =====
-    checkin_field = "reda__Check_In_Datetime__c"
-    if checkin_field in campos_info and campos_info[checkin_field].get("createable"):
-        now_utc_iso = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
-        # troca +00:00 por Z para o padrão ISO aceito
-        if now_utc_iso.endswith("+00:00"):
-            now_utc_iso = now_utc_iso.replace("+00:00", "Z")
-        candidatos[checkin_field] = now_utc_iso
-        print(f"[INFO] Check-in datetime setado: {now_utc_iso}")
-    else:
-        print("[AVISO] Campo reda__Check_In_Datetime__c não é createable ou não existe; pulando.")
+    try:
+        result = sobj.create(payload)
+        print("✅ Registro criado:", result)
+        return result
+    except SalesforceMalformedRequest as e:
+        print("❌ Erro de request malformado:")
+        print("Conteúdo:", e.content)
+        traceback.print_exc()
+        return {"success": False, "error": e.content}
+    except Exception as e:
+        print("❌ Erro inesperado:")
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
 
-    # ===== 4) Lookup p/ Contact (morador/host) =====
-    ref_contact_fields = []
-    for f in desc["fields"]:
-        if f.get("type") == "reference" and f.get("createable", False):
-            refs = f.get("referenceTo") or []
-            if "Contact" in refs:
-                ref_contact_fields.append(f["name"])
-
-    if host_contact_id and ref_contact_fields:
-        def sort_key(x):
-            lower = x.lower()
-            return (0 if "host" in lower else (1 if "contact" in lower else 2), x)
-        ref_contact_fields.sort(key=sort_key)
-        candidatos[ref_contact_fields[0]] = host_contact_id
-        print(f"[INFO] Lookup host (Contact) usado: {ref_contact_fields[0]} = {host_contact_id}")
-    elif host_contact_id and not ref_contact_fields:
-        print("[AVISO] Não há lookup createable para Contact em reda__Visitor_Log__c; o Flow pode exigir um recipient.")
-        
-    # ===== 4.1) Guest fields específicos =====
-    if visitante_nome:
-        if "reda__Guest_Name__c" in campos_info and campos_info["reda__Guest_Name__c"].get("createable"):
-            candidatos["reda__Guest_Name__c"] = visitante_nome
-            print("[INFO] Preenchido Guest Name em reda__Guest_Name__c")
-
-    if visitante_telefone:
-        if "reda__Guest_Phone__c" in campos_info and campos_info["reda__Guest_Phone__c"].get("createable"):
-            candidatos["reda__Guest_Phone__c"] = visitante_telefone
-            print("[INFO] Preenchido Guest Phone em reda__Guest_Phone__c")
-
-    if visitante_email:
-        if "reda__Guest_Email__c" in campos_info and campos_info["reda__Guest_Email__c"].get("createable"):
-            candidatos["reda__Guest_Email__c"] = visitante_email
-            print("[INFO] Preenchido Guest Email em reda__Guest_Email__c")
-
-    # ===== 5) Campos de texto (descrição + Visitor_*) =====
-    descricao = (
-        f"Visitante: {visitante_nome or '(vazio)'} | "
-        f"Telefone: {visitante_telefone or '(vazio)'} | "
-        f"Email: {visitante_email or '(vazio)'} | "
-        f"Endereço: {visitante_endereco or '(vazio)'}"
-    )
-    for campo_desc in [
-        "reda__Description__c", "Description__c", "Description",
-        "Notes__c", "Notes", "Comment__c", "Comment",
-        "Remarks__c", "Remarks",
-    ]:
-        info = campos_info.get(campo_desc)
-        if info and info.get("createable"):
-            candidatos[campo_desc] = descricao
-            break
-
-    visitor_text_map = [
-        ("nome", visitante_nome,    ["reda__Visitor_Name__c","Visitor_Name__c","VisitorName__c","Visitor__c","Name_Text__c"]),
-        ("telefone", visitante_telefone, ["reda__Visitor_Phone__c","Visitor_Phone__c","Phone__c","VisitorPhone__c","Phone_Text__c"]),
-        ("email", visitante_email,  ["reda__Visitor_Email__c","Visitor_Email__c","Email__c","VisitorEmail__c","Email_Text__c"]),
-        ("endereco", visitante_endereco, ["reda__Visitor_Address__c","Visitor_Address__c","Address__c"]),
-    ]
-    for label, value, campos in visitor_text_map:
-        if not value:
-            continue
-        for fn in campos:
-            info = campos_info.get(fn)
-            if info and info.get("createable"):
-                candidatos.setdefault(fn, value)
-                print(f"[INFO] Preenchido {label} em: {fn}")
-                break
-
-    # ===== 6) Booleans obrigatórios createable = False =====
-    for f in desc["fields"]:
-        if f.get("type") == "boolean" and not f.get("nillable", True) and f.get("createable", False):
-            candidatos.setdefault(f["name"], False)
-
-    # ===== 7) Filtra payload e cria =====
-    payload = {k: v for k, v in candidatos.items() if k in campos_info and campos_info[k].get("createable")}
-    if "reda__Property__c" not in payload:
-        raise RuntimeError("reda__Property__c não está createable ou não existe no seu org.")
-
-    print("[INFO] Visitor_Log payload:", ", ".join(payload.keys()))
-    res = sobj.create(payload)
-    print("[RESP SF Visitor_Log]:", res)
-    return res
 
 def get_salesforce_connection():
     return sf_connect()  # já existe no visitor.py

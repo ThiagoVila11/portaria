@@ -123,6 +123,23 @@ def delete_encomenda_from_salesforce(ticket_id: str) -> bool:
     except Exception as e:
         print(f"⚠️ Erro ao excluir encomenda no Salesforce: {e}")
         return False
+    
+def delete_acesso_from_salesforce(sf_visitor_log: str) -> bool:
+    """
+    Exclui a encomenda no Salesforce pelo ID do ticket.
+    Retorna True se excluiu com sucesso, False caso contrário.
+    """
+    print(f"Tentando excluir Acesso {sf_visitor_log} no Salesforce...")
+    if not sf_visitor_log:
+        return False
+
+    try:
+        sf = sf_connect()  # 👈 reaproveita a função existente
+        sf.reda__Visitor_Log__c.delete(sf_visitor_log)  # ajuste o objeto correto
+        return True
+    except Exception as e:
+        print(f"⚠️ Erro ao excluir acesso no Salesforce: {e}")
+        return False
 
 
 from django.utils import timezone

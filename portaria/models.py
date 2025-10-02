@@ -51,11 +51,10 @@ def __str__(self):
 
 
 class TipoPessoa(models.TextChoices):
-    MORADOR = 'MORADOR', 'Morador'
-    VISITANTE = 'VISITANTE', 'Visitante'
-    PRESTADOR = 'PRESTADOR', 'Prestador'
-    ENTREGADOR = 'ENTREGADOR', 'Entregador'
-
+    FAMILIA = 'Family', 'Familia'
+    AMIGOS = 'Friends', 'Amigos'
+    PRESTADOR = 'Service', 'Prestador de serviço'
+    
 
 class MetodoAcesso(models.TextChoices):
     TAG = 'TAG', 'TAG/Cartão'
@@ -65,23 +64,28 @@ class MetodoAcesso(models.TextChoices):
 
 
 class ResultadoAcesso(models.TextChoices):
-    PERMITIDO = 'OK', 'Permitido'
-    NEGADO = 'NO', 'Negado'
-    AGUARDANDO = 'AG', 'Aguardando liberação'
+    PERMITIDO = 'Permitted', 'Permitido'
+    NEGADO = 'Cancelled', 'Negado'
+    AGUARDANDO = 'Requested', 'Aguardando'
+    CheckIn = 'CheckIn', 'CheckIn'
 
 
 class EventoAcesso(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     condominio = models.ForeignKey(Condominio, on_delete=models.PROTECT)
+    responsavel = models.ForeignKey(Morador, on_delete=models.PROTECT, null=True, blank=True)
     unidade = models.ForeignKey(Unidade, on_delete=models.PROTECT, null=True, blank=True)
-    pessoa_tipo = models.CharField(max_length=12, choices=TipoPessoa.choices)
+    pessoa_tipo = models.CharField(max_length=20, choices=TipoPessoa.choices)
     pessoa_nome = models.CharField(max_length=120)
+    pessoa_telefone = models.CharField(max_length=20, blank=True)
+    liberado_ate = models.DateTimeField(null=True, blank=True)
     documento = models.CharField(max_length=20, blank=True)
-    metodo = models.CharField(max_length=3, choices=MetodoAcesso.choices)
-    resultado = models.CharField(max_length=2, choices=ResultadoAcesso.choices)
+    #metodo = models.CharField(max_length=3, choices=MetodoAcesso.choices)
+    resultado = models.CharField(max_length=15, choices=ResultadoAcesso.choices)
     motivo_negado = models.CharField(max_length=200, blank=True)
     criado_por = models.ForeignKey(User, on_delete=models.PROTECT)
     criado_em = models.DateTimeField(auto_now_add=True)
+    sf_visitor_log_id = models.CharField("Salesforce VisitorLog Id", max_length=18, blank=True)
 
 
 class Meta:
