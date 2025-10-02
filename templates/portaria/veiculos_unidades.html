@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Veículos · Portaria{% endblock %}
+{% block page_title %}Veículos{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:16px">
+
+  <form method="get" style="display:flex; gap:10px; margin-bottom:12px">
+    <label style="display:grid; gap:6px">
+      <span>Condomínio</span>
+      <select name="condominio">
+        <option value="">Todos</option>
+        {% for c in condominios %}
+          <option value="{{ c.id }}" {% if request.GET.condominio == c.id|stringformat:"s" %}selected{% endif %}>
+            {{ c.nome }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label style="display:grid; gap:6px">
+        <span>Placa</span>
+        <input type="text" name="placa" value="{{ placa|default:'' }}">
+    </label>
+
+    <div style="align-self:end">
+      <button class="btn" type="submit">Filtrar</button>
+      <a class="btn-outline" href="{% url 'veiculos_unidades' %}">Limpar</a>
+    </div>
+  </form>
+
+
+  <p class="muted">Total: <strong>{{ total }}</strong></p>
+  <table border="1" cellpadding="6" width="100%">
+    <tr>
+      <th>Placa</th>
+      <th>Marca</th>
+      <th>Modelo</th>
+      <th>Tipo</th>
+      <th>op</th>
+
+    </tr>
+    {% for v in veiculos %}
+    <tr>
+      <td>{{ v.Name }}</td>
+      <td>{{ v.Brand__c  }}</td>
+      <td>{{ v.reda__Model__c }}</td>
+      <td>{{ v.Type__c }}</td>
+      <td>{{ v.reda__Opportunity__r.reda__Region__c}}</td>
+      
+    </tr>
+    {% empty %}
+    <tr><td colspan="6">Nenhum veículo encontrado.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

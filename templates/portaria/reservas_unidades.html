@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Reservas · Portaria{% endblock %}
+{% block page_title %}Reservas{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:16px">
+
+  <form method="get" style="display:flex; gap:10px; margin-bottom:12px">
+    <label style="display:grid; gap:6px">
+      <span>Condomínio</span>
+      <select name="condominio">
+        <option value="">Todos</option>
+        {% for c in condominios %}
+          <option value="{{ c.id }}" {% if request.GET.condominio == c.id|stringformat:"s" %}selected{% endif %}>
+            {{ c.nome }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <div style="align-self:end">
+      <button class="btn" type="submit">Filtrar</button>
+      <a class="btn-outline" href="{% url 'veiculos_unidades' %}">Limpar</a>
+    </div>
+  </form>
+
+
+  <p class="muted">Total: <strong>{{ total }}</strong></p>
+  <table border="1" cellpadding="6" width="100%">
+    <tr>
+      <th>Id</th>
+      <th>Espaço</th>
+      <th>Unidade</th>
+      <th>Responsável</th>
+      <th>Descrição</th>
+      <th>Data Inicio</th>
+      <th>Data Fim</th>
+      <th>Valor</th>
+      <th>Situação</th>
+
+    </tr>
+    {% for v in reservas %}
+    <tr>
+      <td>{{ v.Id }}</td>
+      <td>{{ v.reda__Property__r.Name }}</td>
+      <td>{{ v.reda__Description__c }}</td>
+      <td>{{ v.Contact__r.Name }}</td>
+      <td>{{ v.reda__Description__c }}</td>
+      <td>{{ v.reda__Start_Datetime__c }}</td>
+      <td>{{ v.reda__End_Datetime__c }}</td>
+      <td>{{ v.reda__Total_Booking_Amount__c }}</td>
+      <td>{{ v.reda__Status__c }}</td>
+      
+    </tr>
+    {% empty %}
+    <tr><td colspan="6">Nenhuma reserva encontrado.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

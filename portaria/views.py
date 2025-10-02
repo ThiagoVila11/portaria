@@ -523,6 +523,56 @@ def visitantes_preaprovados_api(request):
         "oportunidade": oportunidade,
     }, safe=False, json_dumps_params={"ensure_ascii": False})
 
+@login_required
+def visitantes_preaprovados(request):
+    sf = sf_connect()
+    soql = """
+        SELECT Id,
+               reda__Contact__r.Name,
+               reda__Guest_Name__c,
+               reda__Property__c,
+               reda__Property__r.Name,
+               reda__Guest_Phone__c,
+               CreatedDate,
+               reda__Permitted_Till_Datetime__c
+        FROM reda__Visitor_Log__c
+        WHERE reda__Permitted_Till_Datetime__c != null
+        ORDER BY CreatedDate DESC
+        LIMIT 500
+    """
+    recs = sf.query_all(soql).get("records", [])
+
+    # Remove metadados e formata datas
+    for r in recs:
+        r.pop("attributes", None)
+        for field in ["CreatedDate", "reda__Permitted_Till_Datetime__c"]:
+            val = r.get(field)
+            if isinstance(val, str):
+                if len(val) > 5 and (val.endswith("+0000") or val.endswith("-0000") or val[-5:].isdigit()):
+                    val = val[:-2] + ":" + val[-2:]
+                dt = parse_datetime(val)
+                if dt:
+                    r[field] = dt.strftime("%d/%m/%Y %H:%M")
+                else:
+                    r[field] = val
+            else:
+                r[field] = "—"
+
+    # 🔑 Filtro de condomínio
+    allowed = allowed_condominios_for(request.user)
+    allowed_sf_ids = list(Condominio.objects.filter(id__in=allowed)
+                          .values_list("sf_property_id", flat=True))
+
+    if not (request.user.is_superuser or request.user.groups.filter(name="Administrador").exists()):
+        recs = [r for r in recs if r.get("reda__Property__c") in allowed_sf_ids]
+
+    ctx = {
+        "visitantes": recs,
+        "condominios": allowed,
+        "total": len(recs),
+    }
+    return render(request, "portaria/visitantes_preaprovados.html", ctx)
+
 
 @login_required
 def veiculo_list(request):
@@ -566,7 +616,7 @@ def veiculo_create(request):
 def get_all_fields(request):
     """Função utilitária para pegar todos os campos de um objeto Salesforce"""
     sf = sf_connect()
-    object_name = "reda__Visitor_Log__c"
+    object_name = "Opportunity"
     limit = 200
     metadata = sf.restful(f"sobjects/{object_name}/describe")
     fields = [f["name"] for f in metadata["fields"]]
@@ -584,9 +634,18 @@ def get_all_fields(request):
         "campos": records,
     }, safe=False, json_dumps_params={"ensure_ascii": False})
 
+def get_property_id(r):
+    try:
+        return r["reda__Opportunity__r"]["reda__Region__r"]["Id"]
+    except (KeyError, TypeError):
+        return None
+
 @login_required
 def veiculos_unidades(request):
     sf = sf_connect()
+
+    placa = request.GET.get("placa", "").strip()
+
     soql = """
         SELECT Id,
                Name,
@@ -594,31 +653,87 @@ def veiculos_unidades(request):
                reda__Model__c,
                Type__c,
                reda__Color__c,
-               reda__Opportunity__c
+               reda__Opportunity__c,
+               reda__Opportunity__r.reda__Region__c
         FROM reda__Vehicle__c
-        LIMIT 5
-        """
-    recs = sf.query_all(soql).get("records", [])
-    print(f"Veículos retornados: {recs}")
-    # Remove metadados e formata datas
-    for r in recs:
-        veiculo_placa = r.get("Name", "")
-        veiculo = Veiculo.objects.filter(placa=veiculo_placa).first()
-        if veiculo:
-            print(f"Veiculo {veiculo.Name} já existe.")
-        else:
-            veiculo = Veiculo.objects.create(
-                placa = veiculo_placa,
-                modelo = r.get("Brand__c", ""),
-                cor = r.get("reda__Color__c", ""),
-                #condominio = Condominio.objects.filter(sf_property_id=r.get("reda__Property__r.Name", "")).first(),
-                #unidade = Unidade.objects.filter(numero=r.get("reda__Property__r.Name", "")).first(),
-                #proprietario = Morador.objects.filter(sf_opportunity_id=r.get("reda__Opportunity__c", "")).first(),
-            )
+    """
 
-    return JsonResponse({
-        "campos": recs,
-    }, safe=False, json_dumps_params={"ensure_ascii": False})
+    if placa:
+        soql += f" WHERE Name LIKE '%{placa}%'"
+
+    recs = sf.query_all(soql).get("records", [])
+
+    # Remove metadados e adiciona PropertyId direto
+    for r in recs:
+        r.pop("attributes", None)
+        opp = r.get("reda__Opportunity__r") or {}
+        r["PropertyId"] = opp.get("reda__Region__c")
+
+    # 🔑 Filtro de condomínio (apenas os permitidos)
+    allowed = allowed_condominios_for(request.user)
+    allowed_sf_ids = list(
+        Condominio.objects.filter(id__in=allowed).values_list("sf_property_id", flat=True)
+    )
+    print(f"Condomínios permitidos (Salesforce IDs): {allowed_sf_ids}")
+
+     # Se não for admin, filtra os registros
+    if not (request.user.is_superuser or request.user.groups.filter(name="Administrador").exists()):
+        recs = [r for r in recs if r.get("PropertyId") in allowed_sf_ids]
+
+
+    ctx = {
+        "veiculos": recs,
+        "condominios": allowed,
+        "total": len(recs),
+        "placa": placa,
+    }
+    return render(request, "portaria/veiculos_unidades.html", ctx)
+
+@login_required
+def reservas_unidades(request):
+    sf = sf_connect()
+
+    placa = request.GET.get("placa", "").strip()
+
+    soql = """
+        SELECT Id,
+                reda__Property__c,
+                Contact__r.Name,
+                reda__Description__c,
+                reda__Start_Datetime__c,
+                reda__End_Datetime__c,
+                reda__Total_Booking_Amount__c,
+                reda__Status__c,
+                reda__Opportunity__r.Name,
+                reda__Property__r.Name                
+        FROM reda__Booking__c
+    """
+
+    recs = sf.query_all(soql).get("records", [])
+
+    # Remove metadados e adiciona PropertyId direto
+    for r in recs:
+        r.pop("attributes", None)
+
+    # 🔑 Filtro de condomínio (apenas os permitidos)
+    allowed = allowed_condominios_for(request.user)
+    allowed_sf_ids = list(
+        Condominio.objects.filter(id__in=allowed).values_list("sf_property_id", flat=True)
+    )
+    print(f"Condomínios permitidos (Salesforce IDs): {allowed_sf_ids}")
+
+     # Se não for admin, filtra os registros
+    if not (request.user.is_superuser or request.user.groups.filter(name="Administrador").exists()):
+        recs = [r for r in recs if r.get("PropertyId") in allowed_sf_ids]
+
+
+    ctx = {
+        "reservas": recs,
+        "condominios": allowed,
+        "total": len(recs),
+    }
+    return render(request, "portaria/reservas_unidades.html", ctx)
+
 
 @login_required
 def ajax_responsaveis(request, unidade_id):
