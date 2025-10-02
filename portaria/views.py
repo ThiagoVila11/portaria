@@ -681,11 +681,13 @@ def veiculos_unidades(request):
                Type__c,
                reda__Color__c,
                reda__Opportunity__c,
-               reda__Opportunity__r.reda__Region__c
+               reda__Opportunity__r.reda__Region__c, 
+               reda__Opportunity__r.reda__Property__r.Name
         FROM reda__Vehicle__c
     """
 
     where_clauses = []
+    where_clauses.append(f"reda__Opportunity__r.reda__Property__r.Name like '%VAG%'")
     if placa:
         where_clauses.append(f"Name LIKE '%{placa}%'")
     if sf_id:

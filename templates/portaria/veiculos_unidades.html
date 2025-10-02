@@ -36,6 +36,7 @@
       <th>Placa</th>
       <th>Marca</th>
       <th>Modelo</th>
+      <th>Cor</th>
       <th>Tipo</th>
 
     </tr>
@@ -44,7 +45,9 @@
       <td>{{ v.Name }}</td>
       <td>{{ v.Brand__c  }}</td>
       <td>{{ v.reda__Model__c }}</td>
+      <td>{{ v.reda__Color__c }}</td>
       <td>{{ v.Type__c }}</td>
+      <td>{{v.reda__Opportunity__r.reda__Property__r.Name}}</td>
       
     </tr>
     {% empty %}
