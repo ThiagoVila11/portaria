@@ -655,8 +655,24 @@ def veiculos_unidades(request):
     sf = sf_connect()
 
     placa = request.GET.get("placa", "").strip()
-    condominio = request.GET.get("condominio", "").strip()
+    condominio_pk = request.GET.get("condominio")
 
+    # 🔑 Condominios permitidos
+    allowed = allowed_condominios_for(request.user)
+
+    # Se só tiver 1 condomínio permitido e nenhum filtro informado → pré-seleciona
+    if allowed.count() == 1 and not condominio_pk:
+        condominio_pk = str(allowed.first().id)
+
+    # Converte o condominio_pk para o ID do Salesforce
+    sf_id = None
+    if condominio_pk:
+        try:
+            sf_id = Condominio.objects.get(pk=condominio_pk).sf_property_id
+        except Condominio.DoesNotExist:
+            sf_id = None
+
+    # Monta a query SOQL
     soql = """
         SELECT Id,
                Name,
@@ -669,87 +685,78 @@ def veiculos_unidades(request):
         FROM reda__Vehicle__c
     """
 
+    where_clauses = []
     if placa:
-        soql += f" WHERE Name LIKE '%{placa}%'"
+        where_clauses.append(f"Name LIKE '%{placa}%'")
+    if sf_id:
+        where_clauses.append(f"reda__Opportunity__r.reda__Region__c = '{sf_id}'")
 
-    if condominio:
-        sf_property_id = Condominio.objects.filter(id=condominio).values_list("sf_property_id", flat=True).first()
-        if sf_property_id:
-            soql += f" WHERE reda__Opportunity__r.reda__Region__c = '{sf_property_id}'"
+    if where_clauses:
+        soql += " WHERE " + " AND ".join(where_clauses)
 
     recs = sf.query_all(soql).get("records", [])
 
-    # Remove metadados e adiciona PropertyId direto
     for r in recs:
         r.pop("attributes", None)
         opp = r.get("reda__Opportunity__r") or {}
         r["PropertyId"] = opp.get("reda__Region__c")
-
-    # 🔑 Filtro de condomínio (apenas os permitidos)
-    allowed = allowed_condominios_for(request.user)
-    allowed_sf_ids = list(
-        Condominio.objects.filter(id__in=allowed).values_list("sf_property_id", flat=True)
-    )
-    print(f"Condomínios permitidos (Salesforce IDs): {allowed_sf_ids}")
-
-     # Se não for admin, filtra os registros
-    if not (request.user.is_superuser or request.user.groups.filter(name="Administrador").exists()):
-        recs = [r for r in recs if r.get("PropertyId") in allowed_sf_ids]
-
 
     ctx = {
         "veiculos": recs,
         "condominios": allowed,
         "total": len(recs),
         "placa": placa,
+        "condominio_pk": condominio_pk,  # 🔑 manda pro template saber qual option marcar
     }
     return render(request, "portaria/veiculos_unidades.html", ctx)
+
 
 @login_required
 def reservas_unidades(request):
     sf = sf_connect()
 
-    condominio = request.GET.get("condominio", "").strip()
+    condominio_pk = request.GET.get("condominio")
+
+    # 🔑 Condominios permitidos
+    allowed = allowed_condominios_for(request.user)
+
+    # Se só tiver 1 condomínio permitido e nenhum filtro informado → pré-seleciona
+    if allowed.count() == 1 and not condominio_pk:
+        condominio_pk = str(allowed.first().id)
+
+    # Converte o condominio_pk para o ID do Salesforce
+    sf_id = None
+    if condominio_pk:
+        try:
+            sf_id = Condominio.objects.get(pk=condominio_pk).sf_property_id
+        except Condominio.DoesNotExist:
+            sf_id = None
+
+    # Monta a query SOQL
     soql = """
         SELECT Id,
-                reda__Property__c,
-                Contact__r.Name,
-                reda__Description__c,
-                reda__Start_Datetime__c,
-                reda__End_Datetime__c,
-                reda__Total_Booking_Amount__c,
-                reda__Status__c,
-                reda__Opportunity__r.Name,
-                reda__Property__r.Name                
+               reda__Property__r.Name,
+               reda__Description__c,
+               Contact__r.Name,
+               reda__Start_Datetime__c,
+               reda__End_Datetime__c,
+               reda__Total_Booking_Amount__c,
+               reda__Status__c
         FROM reda__Booking__c
     """
-    if condominio:
-        sf_property_id = Condominio.objects.filter(id=condominio).values_list("sf_property_id", flat=True).first()
-        if sf_property_id:
-            soql += f" WHERE reda__Opportunity__r.reda__Region__c = '{sf_property_id}'"
+    if sf_id:
+        soql += f" WHERE reda__Property__c = '{sf_id}'"
 
     recs = sf.query_all(soql).get("records", [])
 
-    # Remove metadados e adiciona PropertyId direto
     for r in recs:
         r.pop("attributes", None)
-
-    # 🔑 Filtro de condomínio (apenas os permitidos)
-    allowed = allowed_condominios_for(request.user)
-    allowed_sf_ids = list(
-        Condominio.objects.filter(id__in=allowed).values_list("sf_property_id", flat=True)
-    )
-    print(f"Condomínios permitidos (Salesforce IDs): {allowed_sf_ids}")
-
-     # Se não for admin, filtra os registros
-    if not (request.user.is_superuser or request.user.groups.filter(name="Administrador").exists()):
-        recs = [r for r in recs if r.get("PropertyId") in allowed_sf_ids]
-
 
     ctx = {
         "reservas": recs,
         "condominios": allowed,
         "total": len(recs),
+        "condominio_pk": condominio_pk,  # 🔑 manda pro template
     }
     return render(request, "portaria/reservas_unidades.html", ctx)
 

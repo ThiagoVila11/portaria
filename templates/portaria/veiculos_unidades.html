@@ -11,8 +11,8 @@
       <select name="condominio">
         <option value="">Todos</option>
         {% for c in condominios %}
-          <option value="{{ c.id }}" {% if request.GET.condominio == c.id|stringformat:"s" %}selected{% endif %}>
-            {{ c.nome }}
+          <option value="{{ c.id }}" {% if condominio_pk == c.id|stringformat:"s" %}selected{% endif %}>
+          {{ c.nome }}
           </option>
         {% endfor %}
       </select>
@@ -37,7 +37,6 @@
       <th>Marca</th>
       <th>Modelo</th>
       <th>Tipo</th>
-      <th>op</th>
 
     </tr>
     {% for v in veiculos %}
@@ -46,7 +45,6 @@
       <td>{{ v.Brand__c  }}</td>
       <td>{{ v.reda__Model__c }}</td>
       <td>{{ v.Type__c }}</td>
-      <td>{{ v.reda__Opportunity__r.reda__Region__c}}</td>
       
     </tr>
     {% empty %}

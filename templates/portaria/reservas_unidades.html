@@ -11,7 +11,7 @@
       <select name="condominio">
         <option value="">Todos</option>
         {% for c in condominios %}
-          <option value="{{ c.id }}" {% if request.GET.condominio == c.id|stringformat:"s" %}selected{% endif %}>
+          <option value="{{ c.id }}" {% if condominio_pk == c.id|stringformat:"s" %}selected{% endif %}>
             {{ c.nome }}
           </option>
         {% endfor %}
