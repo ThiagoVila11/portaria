@@ -730,7 +730,9 @@ def reservas_unidades(request):
                reda__Total_Booking_Amount__c,
                reda__Status__c,
                reda__Property__r.reda__Region__c,
-               reda__Opportunity__r.Apartment__c
+               reda__Opportunity__r.reda__Property__r.name,
+               reda__Opportunity__c,
+               Opportunity_property__c
         FROM reda__Booking__c
     """
 
@@ -763,11 +765,22 @@ def reservas_unidades(request):
     print("SOQL final:", soql)  # 🪶 debug opcional
 
     recs = sf.query_all(soql).get("records", [])
-    print(f"Registros retornados: {recs}")  # 🪶 debug opcional
+
+    STATUS_TRADUZIDO = {
+        "Pending": "Pendente",
+        "Confirmed": "Confirmada",
+        "Cancelled": "Cancelada",
+        "Completed": "Concluída",
+        "Rejected": "Recusada",
+        "In Progress": "Em andamento",
+        "Draft": "Rascunho",
+    }
     # 🔹 Formata datas legíveis
     for r in recs:
         r.pop("attributes", None)
         for field in ["reda__Start_Datetime__c", "reda__End_Datetime__c"]:
+            status = r.get("reda__Status__c")
+            r["Status_PT"] = STATUS_TRADUZIDO.get(status, status)
             if r.get(field):
                 try:
                     dt = datetime.fromisoformat(r[field].replace("Z", "+00:00"))
@@ -796,7 +809,7 @@ def ajax_responsaveis(request, unidade_id):
 def get_all_fields(request):
     """Função utilitária para pegar todos os campos de um objeto Salesforce"""
     sf = sf_connect()
-    object_name = "Opportunity"
+    object_name = "reda__Property__c"
     limit = 200
     metadata = sf.restful(f"sobjects/{object_name}/describe")
     fields = [f["name"] for f in metadata["fields"]]

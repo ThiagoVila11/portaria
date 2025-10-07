@@ -38,6 +38,7 @@
   <p class="muted">Total: <strong>{{ total }}</strong></p>
   <table border="1" cellpadding="6" width="100%">
     <tr>
+      <th>ID</th>
       <th>Espaço</th>
       <th>Unidade</th>
       <th>Responsável</th>
@@ -50,14 +51,15 @@
     </tr>
     {% for v in reservas %}
     <tr>
+      <td>{{ v.Id }}</td>
       <td>{{ v.reda__Property__r.Name }}</td>
-      <td>{{ v.reda__Opportunity__r.Apartment__c }}</td>
+      <td>{{ v.Opportunity_property__c}}</td>
       <td>{{ v.Contact__r.Name }}</td>
       <td>{{ v.reda__Description__c }}</td>
       <td>{{ v.reda__Start_Datetime__c }}</td>
       <td>{{ v.reda__End_Datetime__c }}</td>
       <td>{{ v.reda__Total_Booking_Amount__c }}</td>
-      <td>{{ v.reda__Status__c }}</td>
+      <td>{{ v.Status_PT }}</td>
       
     </tr>
     {% empty %}
