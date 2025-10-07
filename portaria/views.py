@@ -3,7 +3,7 @@ from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect, get_object_or_404
 from portaria.permissions import allowed_condominios_for
 from django.utils import timezone
-from .models import Encomenda, EventoAcesso, StatusEncomenda, TipoPessoa, MetodoAcesso, ResultadoAcesso, Veiculo
+from .models import Encomenda, EventoAcesso, StatusEncomenda, TipoPessoa, MetodoAcesso, ResultadoAcesso, Veiculo, Condominio
 from condominio.models import Condominio, Unidade, Morador, Bloco
 from portaria.models import EventoAcesso, Encomenda
 from condominio.models import Condominio, Unidade
@@ -19,6 +19,8 @@ from integrations.allvisitorlogs import sf_connect, get_all_fields, build_where_
 from .forms import VeiculoForm
 from django.http import JsonResponse
 from collections import OrderedDict
+from datetime import datetime
+from django.utils import timezone
 
 @login_required
 def dashboard(request):
@@ -623,33 +625,6 @@ def veiculo_create(request):
         form = VeiculoForm()
     return render(request, "portaria/veiculo_form.html", {"form": form})
 
-def get_all_fields(request):
-    """Função utilitária para pegar todos os campos de um objeto Salesforce"""
-    sf = sf_connect()
-    object_name = "reda__Visitor_Log__c"
-    limit = 200
-    metadata = sf.restful(f"sobjects/{object_name}/describe")
-    fields = [f["name"] for f in metadata["fields"]]
-
-    soql = f"SELECT {', '.join(fields)} FROM {object_name} LIMIT {limit}"
-    print(f"Executando SOQL:\n{soql}\n")
-
-    records = sf.query_all(soql)["records"]
-
-    for r in records:
-        r.pop("attributes", None)
-    # ✅ Retorna JSON sem filtro
-
-    return JsonResponse({
-        "campos": records,
-    }, safe=False, json_dumps_params={"ensure_ascii": False})
-
-def get_property_id(r):
-    try:
-        return r["reda__Opportunity__r"]["reda__Region__r"]["Id"]
-    except (KeyError, TypeError):
-        return None
-
 @login_required
 def veiculos_unidades(request):
     sf = sf_connect()
@@ -697,11 +672,20 @@ def veiculos_unidades(request):
         soql += " WHERE " + " AND ".join(where_clauses)
 
     recs = sf.query_all(soql).get("records", [])
-
+    TIPO_TRADUZIDO = {
+        "Car": "Carro",
+        "Motorcycle": "Motocicleta",
+        "Truck": "Caminhão",
+        "Bicycle": "Bicicleta",
+        "Scooter": "Scooter",
+        "Van": "Van",
+}
     for r in recs:
         r.pop("attributes", None)
         opp = r.get("reda__Opportunity__r") or {}
         r["PropertyId"] = opp.get("reda__Region__c")
+        tipo = r.get("Type__c")
+        r["Tipo_PT"] = TIPO_TRADUZIDO.get(tipo, tipo)
 
     ctx = {
         "veiculos": recs,
@@ -718,15 +702,16 @@ def reservas_unidades(request):
     sf = sf_connect()
 
     condominio_pk = request.GET.get("condominio")
+    data_inicio = request.GET.get("data_inicio")
+    data_fim = request.GET.get("data_fim")
 
-    # 🔑 Condominios permitidos
     allowed = allowed_condominios_for(request.user)
 
-    # Se só tiver 1 condomínio permitido e nenhum filtro informado → pré-seleciona
+    # 🔹 Se o usuário tiver apenas 1 condomínio, já seleciona automaticamente
     if allowed.count() == 1 and not condominio_pk:
         condominio_pk = str(allowed.first().id)
 
-    # Converte o condominio_pk para o ID do Salesforce
+    # 🔹 Busca o ID Salesforce do condomínio
     sf_id = None
     if condominio_pk:
         try:
@@ -734,7 +719,7 @@ def reservas_unidades(request):
         except Condominio.DoesNotExist:
             sf_id = None
 
-    # Monta a query SOQL
+    # 🔹 Query base
     soql = """
         SELECT Id,
                reda__Property__r.Name,
@@ -743,25 +728,62 @@ def reservas_unidades(request):
                reda__Start_Datetime__c,
                reda__End_Datetime__c,
                reda__Total_Booking_Amount__c,
-               reda__Status__c
+               reda__Status__c,
+               reda__Property__r.reda__Region__c,
+               reda__Opportunity__r.Apartment__c
         FROM reda__Booking__c
     """
+
+    where_clauses = []
+
     if sf_id:
-        soql += f" WHERE reda__Property__c = '{sf_id}'"
+        where_clauses.append(f"reda__Property__r.reda__Region__c = '{sf_id}'")
+
+    # ✅ Datas sem aspas
+    if data_inicio:
+        try:
+            data_inicio_iso = datetime.strptime(data_inicio, "%Y-%m-%d").strftime("%Y-%m-%dT00:00:00Z")
+            where_clauses.append(f"reda__Start_Datetime__c >= {data_inicio_iso}")
+        except Exception:
+            pass
+
+    if data_fim:
+        try:
+            data_fim_iso = datetime.strptime(data_fim, "%Y-%m-%d").strftime("%Y-%m-%dT23:59:59Z")
+            where_clauses.append(f"reda__End_Datetime__c <= {data_fim_iso}")
+        except Exception:
+            pass
+
+    # 🔹 Monta WHERE se houver filtros
+    if where_clauses:
+        soql += " WHERE " + " AND ".join(where_clauses)
+
+    soql += " ORDER BY reda__Start_Datetime__c DESC"
+
+    print("SOQL final:", soql)  # 🪶 debug opcional
 
     recs = sf.query_all(soql).get("records", [])
-
+    print(f"Registros retornados: {recs}")  # 🪶 debug opcional
+    # 🔹 Formata datas legíveis
     for r in recs:
         r.pop("attributes", None)
+        for field in ["reda__Start_Datetime__c", "reda__End_Datetime__c"]:
+            if r.get(field):
+                try:
+                    dt = datetime.fromisoformat(r[field].replace("Z", "+00:00"))
+                    r[field] = dt.strftime("%d/%m/%Y - %H:%M")
+                except Exception:
+                    pass
 
     ctx = {
         "reservas": recs,
         "condominios": allowed,
         "total": len(recs),
-        "condominio_pk": condominio_pk,  # 🔑 manda pro template
+        "condominio_pk": condominio_pk,
+        "data_inicio": data_inicio,
+        "data_fim": data_fim,
     }
     return render(request, "portaria/reservas_unidades.html", ctx)
-
 
 @login_required
 def ajax_responsaveis(request, unidade_id):
@@ -770,3 +792,30 @@ def ajax_responsaveis(request, unidade_id):
     for m in moradores:
         options.append(f'<option value="{m.id}">{m.nome}</option>')
     return HttpResponse("\n".join(options))
+
+def get_all_fields(request):
+    """Função utilitária para pegar todos os campos de um objeto Salesforce"""
+    sf = sf_connect()
+    object_name = "Opportunity"
+    limit = 200
+    metadata = sf.restful(f"sobjects/{object_name}/describe")
+    fields = [f["name"] for f in metadata["fields"]]
+
+    soql = f"SELECT {', '.join(fields)} FROM {object_name} LIMIT {limit}"
+    print(f"Executando SOQL:\n{soql}\n")
+
+    records = sf.query_all(soql)["records"]
+
+    for r in records:
+        r.pop("attributes", None)
+    # ✅ Retorna JSON sem filtro
+
+    return JsonResponse({
+        "campos": records,
+    }, safe=False, json_dumps_params={"ensure_ascii": False})
+
+def get_property_id(r):
+    try:
+        return r["reda__Opportunity__r"]["reda__Region__r"]["Id"]
+    except (KeyError, TypeError):
+        return None
