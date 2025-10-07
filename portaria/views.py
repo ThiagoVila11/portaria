@@ -214,7 +214,7 @@ def acesso_list(request):
         try:
             # Consulta SOQL no Salesforce
             soql = f"""
-                SELECT Id, reda__Status__c
+                SELECT Id, reda__Status__c, reda__Permitted_Till_Datetime__c
                 FROM reda__Visitor_Log__c
                 WHERE Id = '{evento.sf_visitor_log_id}'
             """
@@ -222,6 +222,7 @@ def acesso_list(request):
             print(f"Consulta SOQL para {evento.pessoa_nome} (ID {evento.sf_visitor_log_id}): {result}")
             if result:
                 status_sf = result[0].get("reda__Status__c")
+                permitted_str = result[0].get("reda__Permitted_Till_Datetime__c")
 
                 # Traduz status Salesforce → local
                 STATUS_MAP = {
@@ -231,11 +232,30 @@ def acesso_list(request):
                     "Liberado": "Checked In",
                 }
                 novo_status = STATUS_MAP.get(status_sf, evento.resultado)
+                # 🔹 Atualiza o campo "liberado_ate" se houver valor
+                if permitted_str:
+                    try:
+                        permitted_dt = datetime.fromisoformat(permitted_str.replace("Z", "+00:00"))
+                        evento.liberado_ate = permitted_dt
+                    except Exception as e:
+                        print(f"⚠️ Erro ao converter data de liberação ({permitted_str}): {e}")
+
                 print(f"Status Salesforce: {status_sf} → Novo status local: {novo_status}")
                 #if novo_status != evento.resultado:
-                evento.resultado = status_sf
-                evento.save(update_fields=["resultado"])
-                print(f"✅ Atualizado {evento.pessoa_nome}: {status_sf} → {novo_status}")
+                #evento.resultado = status_sf
+                #evento.save(update_fields=["resultado"])
+
+                # 🔹 Atualiza se houver mudanças
+                campos_para_salvar = []
+                if novo_status != evento.resultado:
+                    evento.resultado = novo_status
+                    campos_para_salvar.append("resultado")
+                if permitted_str:
+                    campos_para_salvar.append("liberado_ate")
+
+                if campos_para_salvar:
+                    evento.save(update_fields=campos_para_salvar)
+                    print(f"✅ Atualizado {evento.pessoa_nome}: {status_sf} até {evento.liberado_ate}")
 
         except Exception as e:
             print(f"⚠️ Erro ao atualizar {evento.pessoa_nome}: {e}")
@@ -302,42 +322,79 @@ def acesso_create(request):
         form = EventoAcessoForm(request.POST, user=request.user)
         if form.is_valid():
             acesso = form.save(commit=False)
-            acesso.criado_por = request.user  # 🔹 preencher aqui
+            acesso.criado_por = request.user
+
+            try:
+                # 🔹 Conexão Salesforce
+                sf = get_salesforce_connection()
+                telefone = acesso.pessoa_telefone.strip()
+                oportunidade_id = acesso.responsavel.sf_opportunity_id if acesso.responsavel else None
+
+                # ⚙️ Verifica se já há Visitor_Log ativo no Salesforce
+                if telefone and oportunidade_id:
+                    soql = f"""
+                        SELECT Id, reda__Permitted_Till_Datetime__c
+                        FROM reda__Visitor_Log__c
+                        WHERE reda__Opportunity__c = '{oportunidade_id}'
+                        AND reda__Guest_Phone__c = '{telefone}'
+                        AND reda__Permitted_Till_Datetime__c != null
+                        ORDER BY reda__Permitted_Till_Datetime__c DESC
+                        LIMIT 1
+                    """
+                    result = sf.query(soql).get("records", [])
+                    if result:
+                        permitted_str = result[0].get("reda__Permitted_Till_Datetime__c")
+                        permitted_till = datetime.fromisoformat(permitted_str.replace("Z", "+00:00"))
+                        now_utc = datetime.now(timezone.utc)
+
+                        if permitted_till > now_utc:
+                            acesso.resultado = "OK"  # 🔹 Liberado automaticamente
+                            acesso.liberado_ate = permitted_till
+                            messages.info(
+                                request,
+                                f"Visitante já pré-aprovado no Salesforce até {permitted_till.strftime('%d/%m/%Y %H:%M')}.",
+                            )
+
+            except Exception as e:
+                print(f"⚠️ Erro ao verificar pré-liberação no Salesforce: {e}")
+
+            # 🔹 Salva o registro local
             acesso.save()
 
-            # integração Salesforce...
+            # 🔹 Cria o VisitorLog no Salesforce (se não existir ainda)
             if not acesso.sf_visitor_log_id:
                 try:
-                    sf = get_salesforce_connection() 
-                    #ticket_id = sync_encomenda_to_salesforce(encomenda)
                     print("Tentando criar VisitorLog no Salesforce...")
                     visitor_log_id = criar_visitor_log_salesforce(
                         sf=sf,
-                        propriedade_id= acesso.unidade.sf_unidade_id, 
-                        oportunidade_id = acesso.responsavel.sf_opportunity_id,
-                        contato_id = acesso.responsavel.sf_contact_id,
-                        resultado = acesso.resultado,
+                        propriedade_id=acesso.unidade.sf_unidade_id if acesso.unidade else "",
+                        oportunidade_id=acesso.responsavel.sf_opportunity_id if acesso.responsavel else "",
+                        contato_id=acesso.responsavel.sf_contact_id if acesso.responsavel else "",
+                        resultado=acesso.resultado,
                         visitante_nome=acesso.pessoa_nome,
                         visitante_endereco=str(acesso.unidade) if acesso.unidade else "",
                         visitante_telefone=acesso.pessoa_telefone,
                         visitante_email="",
                         visitante_tipo=acesso.pessoa_tipo,
                     )
-                    print(f"VisitorLog criado no Salesforce: {visitor_log_id}")
-                    if visitor_log_id:
-                        id_visita = visitor_log_id["id"]
-                        acesso.sf_visitor_log_id = id_visita
+
+                    if visitor_log_id and "id" in visitor_log_id:
+                        acesso.sf_visitor_log_id = visitor_log_id["id"]
                         acesso.save(update_fields=["sf_visitor_log_id"])
-                        messages.info(request, f"Visitante criado no Salesforce: {id_visita}")
-                    messages.success(request, "Acesso registrado e enviado ao Salesforce. {id_visita}")
+                        messages.success(request, f"Visitor Log criado no Salesforce: {visitor_log_id['id']}")
+                    else:
+                        messages.warning(request, "Acesso salvo, mas Salesforce não retornou um ID válido.")
+
                 except Exception as e:
-                    messages.error(request, f"Acesso salvo, mas falhou integração SF: {e}")
+                    messages.error(request, f"Acesso salvo, mas falhou integração com Salesforce: {e}")
 
             return redirect("acesso_list")
+
     else:
         form = EventoAcessoForm(user=request.user)
 
     return render(request, "portaria/acesso_form.html", {"form": form})
+
 
 @login_required
 #@permission_required('portaria.delete_eventoacesso', raise_exception=True)
