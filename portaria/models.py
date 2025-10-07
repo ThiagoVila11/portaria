@@ -67,7 +67,7 @@ class ResultadoAcesso(models.TextChoices):
     PERMITIDO = 'Permitted', 'Permitido'
     NEGADO = 'Cancelled', 'Negado'
     AGUARDANDO = 'Requested', 'Aguardando'
-    CheckIn = 'CheckIn', 'CheckIn'
+    CheckIn = 'Checked In', 'Liberado'
 
 
 class EventoAcesso(models.Model):

@@ -83,18 +83,29 @@ class EventoAcessoForm(forms.ModelForm):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # 🔹 Filtrar condomínios permitidos
+        # 🔹 Torna todos os campos obrigatórios
+        for field in self.fields.values():
+            field.required = True
+
+        # 🔹 Remove opções "Negado" e "Liberado" no momento da criação
+        if not self.instance.pk:  # só aplica no formulário de criação
+            escolhas = self.fields["resultado"].choices
+            # Mantém apenas as opções desejadas
+            self.fields["resultado"].choices = [
+                (valor, label)
+                for valor, label in escolhas
+                if label not in ["Negado", "Liberado"]
+            ]
+
+
+        # 🔹 Filtra condomínios permitidos
         if user and not user.is_superuser:
             self.fields["condominio"].queryset = user.condominios_permitidos.all()
-        else:
-            self.fields["condominio"].queryset = Condominio.objects.all()
 
-        # --- CONDOMÍNIO → UNIDADES ---
+        # 🔹 Condomínio escolhido
         cond_id = (
             self.data.get("condominio") if self.data else None
-        ) or getattr(self.instance, "condominio_id", None) or (
-            self.fields["condominio"].initial.id if self.fields["condominio"].initial else None
-        )
+        ) or getattr(self.instance, "condominio_id", None)
 
         if cond_id:
             self.fields["unidade"].queryset = (
@@ -105,15 +116,14 @@ class EventoAcessoForm(forms.ModelForm):
         else:
             self.fields["unidade"].queryset = Unidade.objects.none()
 
-        # --- UNIDADE → MORADORES ---
+        # 🔹 Unidade escolhida
         uni_id = (
             self.data.get("unidade") if self.data else None
         ) or getattr(self.instance, "unidade_id", None)
 
         if uni_id:
             self.fields["responsavel"].queryset = (
-                Morador.objects.filter(unidade_id=uni_id, ativo=True)
-                .order_by("nome")
+                Morador.objects.filter(unidade_id=uni_id).order_by("nome")
             )
         else:
             self.fields["responsavel"].queryset = Morador.objects.none()
@@ -128,7 +138,7 @@ class EventoAcessoForm(forms.ModelForm):
             "pessoa_nome",
             "pessoa_telefone",
             "resultado",
-            "motivo_negado",
+            #"motivo_negado",
         ]
 
 

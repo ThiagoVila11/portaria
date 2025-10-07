@@ -37,7 +37,7 @@ class Unidade(models.Model):
         unique_together = ("bloco", "numero")
 
     def __str__(self):
-        return f"{self.bloco} - Unidade {self.numero}"
+        return f"{self.numero}"
 
 
 class Morador(models.Model):

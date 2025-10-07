@@ -200,6 +200,46 @@ from django.utils.dateparse import parse_date
 
 @login_required
 def acesso_list(request):
+    # 🔹 Conecta ao Salesforce
+    sf = sf_connect()
+
+    # 🔹 Busca todos os acessos locais
+    eventos = EventoAcesso.objects.all().select_related("unidade", "condominio")
+
+    # 🔹 Atualiza status com o Salesforce
+    for evento in eventos:
+        if not evento.sf_visitor_log_id:
+            continue  # só atualiza se tiver o ID do Visitor Log salvo
+
+        try:
+            # Consulta SOQL no Salesforce
+            soql = f"""
+                SELECT Id, reda__Status__c
+                FROM reda__Visitor_Log__c
+                WHERE Id = '{evento.sf_visitor_log_id}'
+            """
+            result = sf.query(soql).get("records", [])
+            print(f"Consulta SOQL para {evento.pessoa_nome} (ID {evento.sf_visitor_log_id}): {result}")
+            if result:
+                status_sf = result[0].get("reda__Status__c")
+
+                # Traduz status Salesforce → local
+                STATUS_MAP = {
+                    "Permitido": "Permitted",
+                    "Negado": "Cancelled",
+                    "Aguardando": "Requested",
+                    "Liberado": "Checked In",
+                }
+                novo_status = STATUS_MAP.get(status_sf, evento.resultado)
+                print(f"Status Salesforce: {status_sf} → Novo status local: {novo_status}")
+                #if novo_status != evento.resultado:
+                evento.resultado = status_sf
+                evento.save(update_fields=["resultado"])
+                print(f"✅ Atualizado {evento.pessoa_nome}: {status_sf} → {novo_status}")
+
+        except Exception as e:
+            print(f"⚠️ Erro ao atualizar {evento.pessoa_nome}: {e}")
+
     allowed = allowed_condominios_for(request.user)
     is_admin_like = request.user.is_superuser or request.user.groups.filter(name="Administrador").exists()
 
