@@ -352,7 +352,7 @@ def acesso_create(request):
                     #data_salesforce = datetime.strptime(permitted_str, "%Y-%m-%dT%H:%M:%S.%f%z")
                     #permitted_till = datetime.strptime(permitted_str, "%d/%m/%Y - %H:%M") #parse_salesforce_datetime(result[0].get("reda__Permitted_Till_Datetime__c"))
                     permitted_str = result[0].get("reda__Permitted_Till_Datetime__c")
-                    permitted_till = parse_salesforce_datetime(permitted_str)
+                    permitted_till = parse_salesforce_datetime_utc(permitted_str)
                     now_utc = timezone.now()                    
                     print(f"Permitted till: {permitted_till}, Now UTC: {now_utc}")
                     if permitted_till  > now_utc:
@@ -918,6 +918,34 @@ def parse_salesforce_datetime(dt_str):
         return dt.strftime("%d/%m/%Y - %H:%M")
     except Exception:
         return dt_str
+    
+from datetime import datetime
+from django.utils import timezone
+
+def parse_salesforce_datetime_utc(dt_str):
+    """Converte string do Salesforce (ex: 2025-10-31T15:00:00.000+0000) em datetime com timezone UTC"""
+    if not dt_str:
+        return None
+    try:
+        # Salesforce envia timezone como +0000 → converte para +00:00
+        if dt_str.endswith('+0000'):
+            dt_str = dt_str[:-5] + '+00:00'
+
+        # Remove milissegundos, se existirem
+        if '.' in dt_str:
+            partes = dt_str.split('.')
+            if len(partes) > 1:
+                dt_str = partes[0] + dt_str[-6:]
+
+        # Converte para datetime
+        dt = datetime.fromisoformat(dt_str)
+        if timezone.is_naive(dt):
+            dt = timezone.make_aware(dt, timezone=timezone.utc)
+        return dt
+    except Exception as e:
+        print(f"⚠️ Erro ao converter datetime Salesforce: {e} (entrada: {dt_str})")
+        return None
+
 
 def get_all_fields(request):
     """Função utilitária para pegar todos os campos de um objeto Salesforce"""
