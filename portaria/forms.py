@@ -87,14 +87,13 @@ class EventoAcessoForm(forms.ModelForm):
         for field in self.fields.values():
             field.required = True
 
-        # 🔹 Remove opções "Negado" e "Liberado" no momento da criação
-        if not self.instance.pk:  # só aplica no formulário de criação
-            escolhas = self.fields["resultado"].choices
-            # Mantém apenas as opções desejadas
-            self.fields["resultado"].choices = [
-                (valor, label)
+        # 🔹 Remove opções "Negado" e "Liberado" apenas na criação
+        #if not self.instance.pk:
+        escolhas = self.fields["resultado"].choices
+        self.fields["resultado"].choices = [
+                (valor, label  )
                 for valor, label in escolhas
-                if label not in ["Negado", "Liberado"]
+                if valor not in ["Cancelled", "Checked In"]
             ]
 
 

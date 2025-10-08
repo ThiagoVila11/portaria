@@ -14,13 +14,14 @@ from integrations.sf_tickets import sync_encomenda_to_salesforce, delete_encomen
 from integrations.visitor import get_salesforce_connection, criar_visitor_log_salesforce
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
-from datetime import date
+from datetime import date, datetime, timezone
 from integrations.allvisitorlogs import sf_connect, get_all_fields, build_where_clause, query_chunk, SOBJECT
 from .forms import VeiculoForm
 from django.http import JsonResponse
 from collections import OrderedDict
 from datetime import datetime
 from django.utils import timezone
+
 
 @login_required
 def dashboard(request):
@@ -338,17 +339,21 @@ def acesso_create(request):
                         WHERE reda__Opportunity__c = '{oportunidade_id}'
                         AND reda__Guest_Phone__c = '{telefone}'
                         AND reda__Permitted_Till_Datetime__c != null
+                        AND Is_Pre_approved__c = TRUE 
                         ORDER BY reda__Permitted_Till_Datetime__c DESC
                         LIMIT 1
                     """
+                    print(soql)
                     result = sf.query(soql).get("records", [])
+                    print(f"Resultado da consulta de pré-liberação: {result}")
                     if result:
                         permitted_str = result[0].get("reda__Permitted_Till_Datetime__c")
                         permitted_till = datetime.fromisoformat(permitted_str.replace("Z", "+00:00"))
-                        now_utc = datetime.now(timezone.utc)
-
+                        now_utc = timezone.now()
+                        print(f"Permitted till: {permitted_till}, Now UTC: {now_utc}")
                         if permitted_till > now_utc:
-                            acesso.resultado = "OK"  # 🔹 Liberado automaticamente
+                            status_resultado = "Permitted"
+                            acesso.resultado = "Permitted"  # 🔹 Liberado automaticamente
                             acesso.liberado_ate = permitted_till
                             messages.info(
                                 request,
@@ -906,7 +911,7 @@ def ajax_responsaveis(request, unidade_id):
 def get_all_fields(request):
     """Função utilitária para pegar todos os campos de um objeto Salesforce"""
     sf = sf_connect()
-    object_name = "reda__Property__c"
+    object_name = "reda__Visitor_Log__c"
     limit = 200
     metadata = sf.restful(f"sobjects/{object_name}/describe")
     fields = [f["name"] for f in metadata["fields"]]

@@ -86,6 +86,7 @@ class EventoAcesso(models.Model):
     criado_por = models.ForeignKey(User, on_delete=models.PROTECT)
     criado_em = models.DateTimeField(auto_now_add=True)
     sf_visitor_log_id = models.CharField("Salesforce VisitorLog Id", max_length=18, blank=True)
+    data_checkin = models.DateTimeField(null=True, blank=True)
 
 
 class Meta:
