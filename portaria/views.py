@@ -248,11 +248,11 @@ def acesso_list(request):
 
                 # 🔹 Atualiza se houver mudanças
                 campos_para_salvar = []
-                if novo_status != evento.resultado:
-                    evento.resultado = novo_status
-                    campos_para_salvar.append("resultado")
-                if permitted_str:
-                    campos_para_salvar.append("liberado_ate")
+                #if novo_status != evento.resultado:
+                evento.resultado = status_sf
+                campos_para_salvar.append("resultado")
+                #if permitted_str:
+                campos_para_salvar.append("liberado_ate")
 
                 if campos_para_salvar:
                     evento.save(update_fields=campos_para_salvar)

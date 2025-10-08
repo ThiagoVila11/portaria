@@ -59,10 +59,8 @@
         <th>Nome</th>
         <th>Telefone</th>
         <th>Tipo</th>
-        <th>Liberado até</th>
-        <th>Check in</th>
+        <th>Data da criação</th>
         <th>Status</th>
-        <tn>Ação</tn>
         <th style="white-space:nowrap">Ação</th>
       </tr>
       {% for a in eventos %}
@@ -72,23 +70,24 @@
         <td> {{a.pessoa_nome}}</td>
         <td> {{a.pessoa_telefone}}</td>
         <td>{{ a.get_pessoa_tipo_display }}</td>
-        <td>{% if a.liberado_ate %}{{ a.liberado_ate|date:"d/m/Y H:i" }}{% else %}-{% endif %}</td>
-        <td>{{ a.data_checkin|date:"d/m/Y H:i" }}</td>
+        <td>{% if a.criado_em %}{{ a.criado_em|date:"d/m/Y H:i" }}{% else %}-{% endif %}</td>
         <td>{{ a.get_resultado_display }}</td>
-        <td style="white-space:nowrap">
-
-
-          {% if perms.portaria.delete_eventoacesso %}
+        <td style="white-space:nowrap; text-align:center;">
+          {% if a.resultado == "Requested" and perms.portaria.delete_eventoacesso %}
             <form method="post"
                   action="{% url 'acesso_delete' a.id %}"
                   style="display:inline"
-                  onsubmit="return confirm('Excluir o registro de acesso de {{ a.pessoa_nome }} em {{ a.criado_em|date:'d/m/Y H:i' }}?');">
+                  onsubmit="return confirm('Excluir o registro de acesso de {{ a.pessoa_nome }} em {{ a.criado_em|date:"d/m/Y H:i" }}?');">
               {% csrf_token %}
-              <button class="btn-outline" style="border-color:#dc2626; color:#dc2626">Excluir</button>
+              <button class="btn-outline" style="border-color:#dc2626; color:#dc2626; padding:2px 8px; font-size:0.85rem;">
+                Excluir
+              </button>
             </form>
+          {% else %}
+            —
           {% endif %}
         </td>
-      </tr>
+    </tr>
       {% empty %}
       <tr><td colspan="7">Nenhum evento de acesso encontrado.</td></tr>
       {% endfor %}

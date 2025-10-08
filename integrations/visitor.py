@@ -147,7 +147,7 @@ def criar_visitor_log_salesforce(
         "reda__Guest_Name__c":    visitante_nome,
         "reda__Guest_Email__c":   visitante_email or None,
         "reda__Guest_Phone__c":   visitante_telefone or None,
-        "reda__Check_In_Datetime__c": received_iso,
+        #"reda__Check_In_Datetime__c": received_iso,
         #"Is_Pre_approved__c":     False,
         #"Is_Requested__c":        False,
     }
