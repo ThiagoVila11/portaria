@@ -3,9 +3,9 @@
 {% block page_title %}Reservas{% endblock %}
 
 {% block content %}
-<div class="card" style="padding:16px">
+<div class="card" style="padding:16px; overflow-x:auto;">
 
-  <form method="get" style="display:flex; gap:10px; margin-bottom:12px">
+  <form method="get" style="display:flex; gap:10px; margin-bottom:12px; flex-wrap: wrap;">
     <label style="display:grid; gap:6px">
       <span>Condomínio</span>
       <select name="condominio">
@@ -34,37 +34,43 @@
     </div>
   </form>
 
-
   <p class="muted">Total: <strong>{{ total }}</strong></p>
-  <table border="1" cellpadding="6" width="100%">
-    <tr>
-      <th>ID</th>
-      <th>Espaço</th>
-      <th>Unidade</th>
-      <th>Responsável</th>
-      <th>Descrição</th>
-      <th>Data Inicio</th>
-      <th>Data Fim</th>
-      <th>Valor</th>
-      <th>Situação</th>
 
-    </tr>
-    {% for v in reservas %}
-    <tr>
-      <td>{{ v.Id }}</td>
-      <td>{{ v.reda__Property__r.Name }}</td>
-      <td>{{ v.Opportunity_property__c}}</td>
-      <td>{{ v.Contact__r.Name }}</td>
-      <td>{{ v.reda__Description__c }}</td>
-      <td>{{ v.reda__Start_Datetime__c }}</td>
-      <td>{{ v.reda__End_Datetime__c }}</td>
-      <td>{{ v.reda__Total_Booking_Amount__c }}</td>
-      <td>{{ v.Status_PT }}</td>
-      
-    </tr>
-    {% empty %}
-    <tr><td colspan="6">Nenhuma reserva encontrado.</td></tr>
-    {% endfor %}
-  </table>
+  <div style="overflow-x:auto;">
+    <table border="1" cellpadding="6" width="100%" style="border-collapse: collapse; min-width: 1000px;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Espaço</th>
+          <th>Unidade</th>
+          <th>Responsável</th>
+          <th>Descrição</th>
+          <th>Data Início</th>
+          <th>Data Fim</th>
+          <th>Valor</th>
+          <th>Situação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in reservas %}
+        <tr>
+          <td>{{ v.Id }}</td>
+          <td>{{ v.reda__Property__r.Name }}</td>
+          <td>{{ v.Opportunity_property__c }}</td>
+          <td>{{ v.Contact__r.Name }}</td>
+          <td>{{ v.reda__Description__c }}</td>
+          <td>{{ v.reda__Start_Datetime__c}}</td>
+          <td>{{ v.reda__End_Datetime__c}}</td>
+          <td>{{ v.reda__Total_Booking_Amount__c }}</td>
+          <td>{{ v.Status_PT }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9">Nenhuma reserva encontrada.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
 </div>
+
 {% endblock %}
