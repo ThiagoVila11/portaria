@@ -347,7 +347,7 @@ def acesso_create(request):
                 result = sf.query(soql).get("records", [])
                 print(f"Resultado da consulta de pré-liberação: {result}")
                 if result:
-                    permitted_str = parse_salesforce_datetime(result[0].get("reda__Permitted_Till_Datetime__c")) #result[0].get("reda__Permitted_Till_Datetime__c")
+                    permitted_str = result[0].get("reda__Permitted_Till_Datetime__c")
                     #permitted_till = datetime.fromisoformat(permitted_str.replace("Z", "+00:00"))
                     data_salesforce = datetime.strptime(permitted_str, "%Y-%m-%dT%H:%M:%S.%f%z")
                     permitted_till = datetime.strptime(permitted_str, "%d/%m/%Y - %H:%M") #parse_salesforce_datetime(result[0].get("reda__Permitted_Till_Datetime__c"))
