@@ -339,7 +339,7 @@ def acesso_create(request):
                         WHERE reda__Opportunity__c = '{oportunidade_id}'
                         AND reda__Guest_Phone__c = '{telefone}'
                         AND reda__Permitted_Till_Datetime__c != null
-                        AND Is_Pre_approved__c = TRUE 
+                        AND "reda__Status__c = 'Permitted'
                         ORDER BY reda__Permitted_Till_Datetime__c DESC
                         LIMIT 1
                     """
