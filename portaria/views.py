@@ -880,15 +880,12 @@ def reservas_unidades(request):
     # 🔹 Formata datas legíveis
     for r in recs:
         r.pop("attributes", None)
-        for field in ["reda__Start_Datetime__c", "reda__End_Datetime__c"]:
-            status = r.get("reda__Status__c")
-            r["Status_PT"] = STATUS_TRADUZIDO.get(status, status)
-            if r.get(field):
-                try:
-                    dt = datetime.fromisoformat(r[field].replace("Z", "+00:00"))
-                    r[field] = dt.strftime("%d/%m/%Y - %H:%M")
-                except Exception:
-                    pass
+        #for field in ["reda__Start_Datetime__c", "reda__End_Datetime__c"]:
+        status = r.get("reda__Status__c")
+        r["Status_PT"] = STATUS_TRADUZIDO.get(status, status)
+    # 🕒 Converte strings ISO → datetime
+        r["reda__Start_Datetime__c"] = parse_salesforce_datetime(r.get("reda__Start_Datetime__c"))
+        r["reda__End_Datetime__c"] = parse_salesforce_datetime(r.get("reda__End_Datetime__c"))
 
     ctx = {
         "reservas": recs,
@@ -907,6 +904,16 @@ def ajax_responsaveis(request, unidade_id):
     for m in moradores:
         options.append(f'<option value="{m.id}">{m.nome}</option>')
     return HttpResponse("\n".join(options))
+
+def parse_salesforce_datetime(dt_str):
+    """Converte '2025-10-15T12:00:00.000+0000' → '15/10/2025 - 12:00'"""
+    if not dt_str:
+        return ""
+    try:
+        dt = datetime.strptime(dt_str.split('.')[0], "%Y-%m-%dT%H:%M:%S")
+        return dt.strftime("%d/%m/%Y - %H:%M")
+    except Exception:
+        return dt_str
 
 def get_all_fields(request):
     """Função utilitária para pegar todos os campos de um objeto Salesforce"""
