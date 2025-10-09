@@ -940,7 +940,7 @@ def parse_salesforce_datetime_utc(dt_str):
         # Converte para datetime
         dt = datetime.fromisoformat(dt_str)
         if timezone.is_naive(dt):
-            dt = timezone.make_aware(dt, timezone=timezone.utc)
+            dt = timezone.make_aware(dt, timezone=timezone)
         return dt
     except Exception as e:
         print(f"⚠️ Erro ao converter datetime Salesforce: {e} (entrada: {dt_str})")
