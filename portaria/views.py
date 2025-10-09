@@ -325,47 +325,47 @@ def acesso_create(request):
             acesso = form.save(commit=False)
             acesso.criado_por = request.user
 
-            #try:
-            # 🔹 Conexão Salesforce
-            sf = get_salesforce_connection()
-            telefone = acesso.pessoa_telefone.strip()
-            oportunidade_id = acesso.responsavel.sf_opportunity_id if acesso.responsavel else None
+            try:
+                # 🔹 Conexão Salesforce
+                sf = get_salesforce_connection()
+                telefone = acesso.pessoa_telefone.strip()
+                oportunidade_id = acesso.responsavel.sf_opportunity_id if acesso.responsavel else None
 
-            # ⚙️ Verifica se já há Visitor_Log ativo no Salesforce
-            if telefone and oportunidade_id:
-                soql = f"""
-                    SELECT Id, reda__Permitted_Till_Datetime__c
-                    FROM reda__Visitor_Log__c
-                    WHERE reda__Opportunity__c = '{oportunidade_id}'
-                    AND reda__Guest_Phone__c = '{telefone}'
-                    AND reda__Permitted_Till_Datetime__c != null
-                    AND reda__Status__c = 'Permitted'
-                    ORDER BY reda__Permitted_Till_Datetime__c DESC
-                    LIMIT 1
-                """
-                print(soql)
-                result = sf.query(soql).get("records", [])
-                print(f"Resultado da consulta de pré-liberação: {result}")
-                if result:
-                    #permitted_str = result[0].get("reda__Permitted_Till_Datetime__c")
-                    #permitted_till = datetime.fromisoformat(permitted_str.replace("Z", "+00:00"))
-                    #data_salesforce = datetime.strptime(permitted_str, "%Y-%m-%dT%H:%M:%S.%f%z")
-                    #permitted_till = datetime.strptime(permitted_str, "%d/%m/%Y - %H:%M") #parse_salesforce_datetime(result[0].get("reda__Permitted_Till_Datetime__c"))
-                    permitted_str = result[0].get("reda__Permitted_Till_Datetime__c")
-                    permitted_till = parse_salesforce_datetime_utc(permitted_str)
-                    now_utc = timezone.now()                    
-                    print(f"Permitted till: {permitted_till}, Now UTC: {now_utc}")
-                    if permitted_till  > now_utc:
-                        status_resultado = "Permitted"
-                        acesso.resultado = "Permitted"  # 🔹 Liberado automaticamente
-                        acesso.liberado_ate = permitted_till
-                        messages.info(
-                            request,
-                            f"Visitante já pré-aprovado no Salesforce até {permitted_till.strftime('%d/%m/%Y %H:%M')}.",
-                        )
+                # ⚙️ Verifica se já há Visitor_Log ativo no Salesforce
+                if telefone and oportunidade_id:
+                    soql = f"""
+                        SELECT Id, reda__Permitted_Till_Datetime__c
+                        FROM reda__Visitor_Log__c
+                        WHERE reda__Opportunity__c = '{oportunidade_id}'
+                        AND reda__Guest_Phone__c = '{telefone}'
+                        AND reda__Permitted_Till_Datetime__c != null
+                        AND reda__Status__c = 'Permitted'
+                        ORDER BY reda__Permitted_Till_Datetime__c DESC
+                        LIMIT 1
+                    """
+                    print(soql)
+                    result = sf.query(soql).get("records", [])
+                    print(f"Resultado da consulta de pré-liberação: {result}")
+                    if result:
+                        #permitted_str = result[0].get("reda__Permitted_Till_Datetime__c")
+                        #permitted_till = datetime.fromisoformat(permitted_str.replace("Z", "+00:00"))
+                        #data_salesforce = datetime.strptime(permitted_str, "%Y-%m-%dT%H:%M:%S.%f%z")
+                        #permitted_till = datetime.strptime(permitted_str, "%d/%m/%Y - %H:%M") #parse_salesforce_datetime(result[0].get("reda__Permitted_Till_Datetime__c"))
+                        permitted_str = result[0].get("reda__Permitted_Till_Datetime__c")
+                        permitted_till = parse_salesforce_datetime_utc(permitted_str)
+                        now_utc = timezone.now()                    
+                        print(f"Permitted till: {permitted_till}, Now UTC: {now_utc}")
+                        if permitted_till  > now_utc:
+                            status_resultado = "Permitted"
+                            acesso.resultado = "Permitted"  # 🔹 Liberado automaticamente
+                            acesso.liberado_ate = permitted_till
+                            #messages.info(
+                            #    request,
+                            #    f"Visitante já pré-aprovado no Salesforce.",
+                            #)
 
-            #except Exception as e:
-            #    print(f"⚠️ Erro ao verificar pré-liberação no Salesforce: {e}")
+            except Exception as e:
+                print(f"⚠️ Erro ao verificar pré-liberação no Salesforce: {e}")
 
             # 🔹 Salva o registro local
             acesso.save()
