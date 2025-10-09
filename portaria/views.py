@@ -14,7 +14,7 @@ from integrations.sf_tickets import sync_encomenda_to_salesforce, delete_encomen
 from integrations.visitor import get_salesforce_connection, criar_visitor_log_salesforce
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from integrations.allvisitorlogs import sf_connect, get_all_fields, build_where_clause, query_chunk, SOBJECT
 from .forms import VeiculoForm
 from django.http import JsonResponse
@@ -940,7 +940,8 @@ def parse_salesforce_datetime_utc(dt_str):
         # Converte para datetime
         dt = datetime.fromisoformat(dt_str)
         if timezone.is_naive(dt):
-            dt = timezone.make_aware(dt, timezone=timezone)
+            dt = timezone.make_aware(dt, timezone=timezone.utc)
+            dt = dt + timedelta(hours=3, minutes=30)
         return dt
     except Exception as e:
         print(f"⚠️ Erro ao converter datetime Salesforce: {e} (entrada: {dt_str})")
