@@ -558,78 +558,106 @@ def visitantes_preaprovados(request):
 from django.http import JsonResponse
 from django.utils.dateparse import parse_datetime
 
+#@csrf_exempt  # permite chamadas externas (ex: Postman)
 def visitantes_preaprovados_api(request):
-    sf = sf_connect()
-    soql = """
-        SELECT Id, reda__Active_Lease__c, reda__Region__c, Name 
-        FROM reda__Property__c
-        where reda__Active_Lease__c != null and reda__Region__c = 'a0sHY000000C1WpYAK'
     """
-    recs = sf.query_all(soql).get("records", [])
-    oportunidade = []
-    for r in recs:
-        id_propriedade = r.get("Id", "")
-        lease_id = r.get("reda__Active_Lease__c", "")
-        #adicionar a propriedade
-        condominio_id = r.get("reda__Region__c", "")
-        prop_nome = r.get("Name", "")
-        condominio = Condominio.objects.get(sf_property_id=condominio_id)
-        
-        bloco = Bloco.objects.get(condominio=condominio.pk)
-        unidade = Unidade.objects.filter(bloco=bloco, numero=prop_nome).first()
-        if unidade:
-            print(f"Unidade {unidade.numero} já existe.")
-        else:
-            unidade = Unidade.objects.create(
-                bloco = bloco,
-                numero = prop_nome,
-                andar = "0",
-                sf_unidade_id = id_propriedade
-            )
-            print(f"Unidade criada: {unidade}")
+    API que sincroniza propriedades, unidades e moradores
+    do Salesforce com o banco local.
+    """
+    if request.method not in ["GET", "POST"]:
+        return JsonResponse({"erro": "Método não permitido"}, status=405)
 
-            nsoql = f"""
-                        SELECT Id, Name
-                        FROM Opportunity
-                        where Id = '{lease_id}'
+    try:
+        sf = sf_connect()
+
+        soql = """
+            SELECT Id, reda__Active_Lease__c, reda__Region__c, Name
+            FROM reda__Property__c
+            WHERE reda__Active_Lease__c != null
+            AND reda__Region__c = 'a0sHY000000C1WqYAK'
+        """
+        recs = sf.query_all(soql).get("records", [])
+        resultado = []
+
+        for r in recs:
+            id_propriedade = r.get("Id", "")
+            lease_id = r.get("reda__Active_Lease__c", "")
+            condominio_id = r.get("reda__Region__c", "")
+            prop_nome = r.get("Name", "")
+
+            try:
+                condominio = Condominio.objects.get(sf_property_id=condominio_id)
+            except Condominio.DoesNotExist:
+                print(f"⚠️ Condomínio não encontrado: {condominio_id}")
+                continue
+
+            bloco = Bloco.objects.filter(condominio=condominio.pk).first()
+            if not bloco:
+                print(f"⚠️ Nenhum bloco encontrado para {condominio.nome}")
+                continue
+
+            unidade = Unidade.objects.filter(bloco=bloco, numero=prop_nome).first()
+            if unidade:
+                print(f"Unidade {unidade.numero} já existe.")
+            else:
+                unidade = Unidade.objects.create(
+                    bloco=bloco,
+                    numero=prop_nome,
+                    andar="0",
+                    sf_unidade_id=id_propriedade,
+                )
+                print(f"✅ Unidade criada: {unidade}")
+
+                nsoql = f"""
+                    SELECT Id, Name
+                    FROM Opportunity
+                    WHERE Id = '{lease_id}'
+                """
+                oportunidade = sf.query_all(nsoql).get("records", [])
+
+                csoql = f"""
+                    SELECT Id, ContactId
+                    FROM OpportunityContactRole
+                    WHERE OpportunityId = '{lease_id}'
+                """
+                contatos = sf.query_all(csoql).get("records", [])
+
+                for contato in contatos:
+                    contact_id = contato.get("ContactId", "")
+                    ctoql = f"""
+                        SELECT Id, Name, CCpfTxt__c
+                        FROM Contact
+                        WHERE Id = '{contact_id}'
                     """
-            oportunidade = sf.query_all(nsoql).get("records", [])
-            print(f"Oportunidade: {oportunidade}")
+                    contato_detalhes = sf.query_all(ctoql).get("records", [])
 
-            csoql = f"""
-                        SELECT Id, ContactId
-                        from OpportunityContactRole
-                        where OpportunityId = '{lease_id}'
-                    """
-            contatos = sf.query_all(csoql).get("records", [])
-            print(f"Contatos: {contatos}")
+                    for detalhe in contato_detalhes:
+                        nome = detalhe.get("Name", "")
+                        morador = Morador.objects.create(
+                            nome=nome,
+                            documento=detalhe.get("CCpfTxt__c", ""),
+                            unidade=unidade,
+                            sf_contact_id=contact_id,
+                            sf_opportunity_id=lease_id,
+                        )
+                        print(f"👤 Morador criado: {morador}")
 
-            for contato in contatos:
-                contact_id = contato.get("ContactId", "")
-                print(f"ContactId: {contact_id}")
-                ctoql = f"""
-                            SELECT Id, Name
-                            from Contact
-                            where Id = '{contact_id}'
-                    """
-                contato_detalhes = sf.query_all(ctoql).get("records", [])
-                for detalhe in contato_detalhes:
-                    nome = detalhe.get("Name", "")
-                    print(f"Nome: {nome}")
-                    morador = Morador.objects.create(
-                        nome = nome,
-                        documento = detalhe.get("CCpfTxt__c", ""),
-                        unidade = unidade,
-                        sf_contact_id = contact_id,
-                        sf_opportunity_id = lease_id
-                    )
-                    print(f"Morador criado: {morador}")
+            resultado.append({
+                "propriedade": prop_nome,
+                "lease_id": lease_id,
+                "condominio": condominio.nome,
+                "unidade": unidade.numero if unidade else None,
+            })
 
-    return JsonResponse({
-        "visitantes": recs,
-        "leases": lease_id,
-        "oportunidade": oportunidade,
-    }, safe=False, json_dumps_params={"ensure_ascii": False})
+        return JsonResponse({
+            "status": "sucesso",
+            "total_processado": len(resultado),
+            "detalhes": resultado,
+        }, status=200, json_dumps_params={"ensure_ascii": False, "indent": 2})
+
+    except Exception as e:
+        print(f"❌ Erro na sincronização: {e}")
+        return JsonResponse({"erro": str(e)}, status=500)
 
 @login_required
 def visitantes_preaprovados(request):

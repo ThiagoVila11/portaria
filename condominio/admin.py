@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import Condominio, Bloco, Unidade, Morador
-
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 #admin.site.register(Condominio)
 #admin.site.register(Bloco)
@@ -27,3 +28,5 @@ class BlocoAdmin(admin.ModelAdmin):
 class MoradorAdmin(admin.ModelAdmin):
     list_display = ("nome", "unidade", "ativo", "sf_contact_id")
     search_fields = ("nome", "sf_contact_id", "unidade__numero", "unidade__bloco__condominio__nome")
+
+

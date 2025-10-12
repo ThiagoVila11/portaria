@@ -2,6 +2,8 @@ from django.contrib import admin
 from .models import Encomenda, EventoAcesso, Parametro, Veiculo
 
 
+
+
 @admin.register(Encomenda)
 class EncomendaAdmin(admin.ModelAdmin):
     list_display = ("id", "condominio", "unidade", "destinatario", "status", "data_recebimento", "data_entrega")
