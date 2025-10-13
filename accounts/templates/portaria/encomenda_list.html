@@ -56,6 +56,7 @@
         <th>Recebido em</th>
         <th>Retirado em</th>
         <th>Retirado por</th>
+        <th>Observações</th>
         <th>Status</th>
         <th style="white-space:nowrap">Ação</th>
       </tr>
@@ -67,6 +68,7 @@
         <td>{{ e.data_recebimento|date:"d/m/Y H:i" }}</td>
         <td>{{ e.data_entrega|date:"d/m/Y H:i" }}</td>
         <td>{{ e.recebido_por}}</td>
+        <td>{{ e.observacoes }}
         <td>{{ e.get_status_display }}</td>
         <td style="white-space:nowrap">
           
