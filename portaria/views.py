@@ -508,6 +508,7 @@ from integrations.allvisitorlogs import sf_connect
 @login_required
 def visitantes_preaprovados(request):
     sf = sf_connect()
+    condominio = request.GET.get("condominio", "").strip()
     soql = """
         SELECT Id,
                reda__Contact__r.Name,
@@ -519,9 +520,14 @@ def visitantes_preaprovados(request):
                reda__Permitted_Till_Datetime__c
         FROM reda__Visitor_Log__c
         WHERE reda__Permitted_Till_Datetime__c != null
-        ORDER BY CreatedDate DESC
-        LIMIT 500
     """
+    if condominio:
+        sf_property_id = Condominio.objects.filter(id=condominio).values_list("sf_property_id", flat=True).first()
+        if sf_property_id:
+            soql += f" and reda__Opportunity__r.reda__Region__c = '{sf_property_id}'"   
+
+    soql += f"ORDER BY CreatedDate DESC"
+
     recs = sf.query_all(soql).get("records", [])
 
     # Remove metadados e formata datas
@@ -545,8 +551,8 @@ def visitantes_preaprovados(request):
     allowed_sf_ids = list(Condominio.objects.filter(id__in=allowed)
                           .values_list("sf_property_id", flat=True))
 
-    if not (request.user.is_superuser or request.user.groups.filter(name="Administrador").exists()):
-        recs = [r for r in recs if r.get("reda__Property__c") in allowed_sf_ids]
+    #if not (request.user.is_superuser or request.user.groups.filter(name="Administrador").exists()):
+    #    recs = [r for r in recs if r.get("reda__Property__c") in allowed_sf_ids]
 
     ctx = {
         "visitantes": recs,
