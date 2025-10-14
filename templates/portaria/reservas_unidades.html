@@ -3,6 +3,8 @@
 {% block page_title %}Reservas - Recepção{% endblock %}
 
 {% block content %}
+{% now "Y-m-d" as today %}
+
 
 <div class="card" style="padding:16px; overflow-x:auto;">
 
@@ -21,7 +23,12 @@
 
     <label style="display:grid; gap:6px">
       <span>Data início</span>
-      <input type="date" name="data_inicio" value="{{ data_inicio|default:'' }}">
+      <input
+        type="date"
+        name="data_inicio"
+        value="{{ data_inicio|default:today|default:'' }}"
+      >
+
     </label>
 
     <label style="display:grid; gap:6px">
