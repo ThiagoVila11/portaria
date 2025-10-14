@@ -855,7 +855,8 @@ def veiculos_unidades(request):
                reda__Color__c,
                reda__Opportunity__c,
                reda__Opportunity__r.reda__Region__c, 
-               reda__Opportunity__r.reda__Property__r.Name
+               reda__Opportunity__r.reda__Property__r.Name,
+               Vehicle_Unit__c
         FROM reda__Vehicle__c
     """
 

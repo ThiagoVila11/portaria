@@ -38,6 +38,7 @@
       <th>Modelo</th>
       <th>Cor</th>
       <th>Tipo</th>
+      <th>Unidade</th>
 
     </tr>
     {% for v in veiculos %}
@@ -47,6 +48,7 @@
       <td>{{ v.reda__Model__c }}</td>
       <td>{{ v.reda__Color__c }}</td>
       <td>{{ v.Tipo_PT }}</td>
+      <td>{{ v.Vehicle_Unit__c }}</td>
       
     </tr>
     {% empty %}
