@@ -49,64 +49,48 @@ from .models import Encomenda
 @login_required
 def encomenda_list(request):
     allowed = allowed_condominios_for(request.user)
-    is_admin_like = request.user.is_superuser or request.user.groups.filter(name="Administrador").exists()
+    qs = Encomenda.objects.select_related("unidade", "condominio").filter(condominio__in=allowed)
 
-    qs = (Encomenda.objects
-          .select_related("condominio", "unidade", "destinatario")
-          .filter(condominio__in=allowed))
+    condominio = request.GET.get("condominio")
+    dt_ini = request.GET.get("dt_ini")
+    dt_fim = request.GET.get("dt_fim")
+    destinatario = request.GET.get("destinatario")
+    status = request.GET.get("status")
 
-    # --- valores vindos do GET (se houver) ---
-    condominio_id  = request.GET.get("condominio")
-    dt_ini         = request.GET.get("dt_ini")
-    dt_fim         = request.GET.get("dt_fim")
-    destinatario_q = request.GET.get("destinatario")
+    # 🔹 Se for a primeira carga (sem filtros), define as datas padrão
+    if not any([dt_ini, dt_fim, condominio, destinatario, status]):
+        hoje = date.today()
+        dt_ini = hoje.replace(day=1).isoformat()  # primeiro dia do mês
+        dt_fim = hoje.isoformat()                 # data atual
 
-    # Detecta "primeira carga": nenhum filtro no GET
-    initial_load = not any(k in request.GET for k in ["condominio", "dt_ini", "dt_fim", "destinatario"])
-
-    if initial_load:
-        hoje = timezone.localdate()             # objeto date
-        dt_ini = hoje.replace(day=1).isoformat()  # 'YYYY-MM-01'
-        dt_fim = hoje.isoformat()                 # 'YYYY-MM-DD'
-
-        if not is_admin_like:
-            first_allowed_id = allowed.order_by("nome").values_list("id", flat=True).first()
-            condominio_id = str(first_allowed_id) if first_allowed_id else ""
-
-    # --- aplica filtros ---
-    if condominio_id:
-        qs = qs.filter(condominio_id=condominio_id)
-
+    # 🔹 Filtros
+    if condominio:
+        qs = qs.filter(condominio_id=condominio)
     if dt_ini:
-        d0 = parse_date(str(dt_ini))
-        if d0:
-            qs = qs.filter(data_recebimento__date__gte=d0)
-
+        qs = qs.filter(data_recebimento__date__gte=dt_ini)
     if dt_fim:
-        d1 = parse_date(str(dt_fim))
-        if d1:
-            qs = qs.filter(data_recebimento__date__lte=d1)
-
-    if destinatario_q:
-        field = Encomenda._meta.get_field("destinatario")
-        if isinstance(field, models.ForeignKey):
-            qs = qs.filter(destinatario__nome__icontains=destinatario_q)
-        else:
-            qs = qs.filter(destinatario__icontains=destinatario_q)
+        qs = qs.filter(data_recebimento__date__lte=dt_fim)
+    if destinatario:
+        qs = qs.filter(destinatario__icontains=destinatario)
+    if status:
+        qs = qs.filter(status=status)
 
     qs = qs.order_by("-data_recebimento")
 
     ctx = {
         "encomendas": qs,
         "condominios": allowed,
+        "status_choices": Encomenda._meta.get_field("status").choices,  # compatível com qualquer estrutura
         "q": {
-            "condominio": condominio_id or "",
+            "condominio": condominio or "",
             "dt_ini": dt_ini or "",
             "dt_fim": dt_fim or "",
-            "destinatario": destinatario_q or "",
+            "destinatario": destinatario or "",
+            "status": status or "",
         },
         "total": qs.count(),
     }
+
     return render(request, "portaria/encomenda_list.html", ctx)
 
 
@@ -937,15 +921,42 @@ def morador_unidades(request):
         soql += " WHERE " + " AND ".join(where_clauses)
 
     #soql += " ORDER BY Name ASC"
-    soql += " LIMIT 500"  # limita para evitar consultas muito grandes
+    soql += " LIMIT 5"  # limita para evitar consultas muito grandes
     recs = sf.query_all(soql).get("records", [])
 
     for r in recs:
         r.pop("attributes", None)
         id_opportunity = r.get("OpportunityId")
         id_contact = r.get("ContactId")
-        #csoql
+        csoql = f"""
+            Select Id, 
+                    Name
+            FROM Contact
+            WHERE Id = '{id_contact}'
+            limit 1
+        """
+        contato = sf.query_all(csoql).get("records", [])
+        if contato:
+            r["Nome"] = contato[0].get("Name")
+        else:
+            r["Nome"] = "—"
 
+        osoql = f"""
+            Select Id,
+                    reda__Region__c,
+                    reda__Property__r.Name
+            FROM Opportunity
+            WHERE Id = '{id_opportunity}'   
+            limit 1
+        """
+        oportunidade = sf.query_all(osoql).get("records", [])
+        if oportunidade:
+            r["PropertyId"] = oportunidade[0].get("reda__Region__c")
+            r["Apto"] = oportunidade[0].get("reda__Property__r", {}).get("Name", "—")
+        else:
+            r["PropertyId"] = None
+            r["Apto"] = "—"
+            
     ctx = {
         "moradores": recs,
         "condominios": allowed,
