@@ -881,90 +881,64 @@ def veiculos_unidades(request):
 
 @login_required
 def morador_unidades(request):
-    sf = sf_connect()
-
-    morador = request.GET.get("morador", "").strip()
+    # 🔹 Parâmetros de filtro
+    morador_nome = request.GET.get("morador", "").strip()
+    print(f"🔍 Filtro morador: '{morador_nome}'")
     apto = request.GET.get("apto", "").strip()
+    print(f"🔍 Filtro apto: '{apto}'")
     condominio_pk = request.GET.get("condominio")
+    print(f"🔍 Filtro condomínio: '{condominio_pk}'")
 
-    # 🔑 Condominios permitidos
+    # 🔹 Condominios permitidos
     allowed = allowed_condominios_for(request.user)
 
-    # Se só tiver 1 condomínio permitido e nenhum filtro informado → pré-seleciona
+    # Se o usuário tiver só 1 condomínio permitido → seleciona automaticamente
     if allowed.count() == 1 and not condominio_pk:
         condominio_pk = str(allowed.first().id)
 
-    # Converte o condominio_pk para o ID do Salesforce
-    sf_id = None
+    # 🔹 Base Query
+    qs = (
+        Morador.objects
+        .select_related("unidade", "unidade__bloco", "unidade__bloco__condominio")
+        .filter(unidade__bloco__condominio__in=allowed)
+    )
+
+    # 🔹 Filtros
     if condominio_pk:
-        try:
-            sf_id = Condominio.objects.get(pk=condominio_pk).sf_property_id
-        except Condominio.DoesNotExist:
-            sf_id = None
+        qs = qs.filter(unidade__bloco__condominio_id=condominio_pk)
 
-    # Monta a query SOQL
-    soql = """
-            SELECT Id, 
-                    Opportunityid,
-                    ContactId
-            FROM OpportunityContactRole
-    """
+    if morador_nome:
+        qs = qs.filter(nome__icontains=morador_nome)
 
-    where_clauses = []
-    #if morador:
-    #    where_clauses.append(f"Name LIKE '%{morador}%'")
-    #if sf_id:
-    #    where_clauses.append(f"reda__Opportunity__r.reda__Region__c = '{sf_id}'")
-    where_clauses.append(f"Opportunity_Active__c = true")
+    if apto:
+        qs = qs.filter(unidade__numero__icontains=apto)
 
-    if where_clauses:
-        soql += " WHERE " + " AND ".join(where_clauses)
+    # 🔹 Ordenação por apartamento e nome
+    qs = qs.order_by("unidade__bloco__nome", "unidade__numero", "nome")
 
-    #soql += " ORDER BY Name ASC"
-    soql += " LIMIT 5"  # limita para evitar consultas muito grandes
-    recs = sf.query_all(soql).get("records", [])
+    # 🔹 Monta resultado formatado
+    moradores = [
+        {
+            "Nome": m.nome,
+            "Apto": m.unidade.numero if m.unidade else "—",
+            "Bloco": m.unidade.bloco.nome if m.unidade and m.unidade.bloco else "—",
+            "Condominio": m.unidade.bloco.condominio.nome if m.unidade and m.unidade.bloco else "—",
+            "sf_contact_id": m.sf_contact_id or "",
+            "sf_opportunity_id": m.sf_opportunity_id or "",
+        }
+        for m in qs
+    ]
 
-    for r in recs:
-        r.pop("attributes", None)
-        id_opportunity = r.get("OpportunityId")
-        id_contact = r.get("ContactId")
-        csoql = f"""
-            Select Id, 
-                    Name
-            FROM Contact
-            WHERE Id = '{id_contact}'
-            limit 1
-        """
-        contato = sf.query_all(csoql).get("records", [])
-        if contato:
-            r["Nome"] = contato[0].get("Name")
-        else:
-            r["Nome"] = "—"
-
-        osoql = f"""
-            Select Id,
-                    reda__Region__c,
-                    reda__Property__r.Name
-            FROM Opportunity
-            WHERE Id = '{id_opportunity}'   
-            limit 1
-        """
-        oportunidade = sf.query_all(osoql).get("records", [])
-        if oportunidade:
-            r["PropertyId"] = oportunidade[0].get("reda__Region__c")
-            r["Apto"] = oportunidade[0].get("reda__Property__r", {}).get("Name", "—")
-        else:
-            r["PropertyId"] = None
-            r["Apto"] = "—"
-            
     ctx = {
-        "moradores": recs,
+        "moradores": moradores,
         "condominios": allowed,
-        "total": len(recs),
-        "morador": morador,
-        "condominio_pk": condominio_pk,  # 🔑 manda pro template saber qual option marcar
+        "total": len(moradores),
+        "morador": morador_nome,
+        "condominio_pk": condominio_pk,
     }
+
     return render(request, "portaria/morador_list.html", ctx)
+
 
 @login_required
 def reservas_unidades(request):
