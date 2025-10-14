@@ -895,6 +895,65 @@ def veiculos_unidades(request):
     }
     return render(request, "portaria/veiculos_unidades.html", ctx)
 
+@login_required
+def morador_unidades(request):
+    sf = sf_connect()
+
+    morador = request.GET.get("morador", "").strip()
+    apto = request.GET.get("apto", "").strip()
+    condominio_pk = request.GET.get("condominio")
+
+    # 🔑 Condominios permitidos
+    allowed = allowed_condominios_for(request.user)
+
+    # Se só tiver 1 condomínio permitido e nenhum filtro informado → pré-seleciona
+    if allowed.count() == 1 and not condominio_pk:
+        condominio_pk = str(allowed.first().id)
+
+    # Converte o condominio_pk para o ID do Salesforce
+    sf_id = None
+    if condominio_pk:
+        try:
+            sf_id = Condominio.objects.get(pk=condominio_pk).sf_property_id
+        except Condominio.DoesNotExist:
+            sf_id = None
+
+    # Monta a query SOQL
+    soql = """
+            SELECT Id, 
+                    Opportunityid,
+                    ContactId
+            FROM OpportunityContactRole
+    """
+
+    where_clauses = []
+    #if morador:
+    #    where_clauses.append(f"Name LIKE '%{morador}%'")
+    #if sf_id:
+    #    where_clauses.append(f"reda__Opportunity__r.reda__Region__c = '{sf_id}'")
+    where_clauses.append(f"Opportunity_Active__c = true")
+
+    if where_clauses:
+        soql += " WHERE " + " AND ".join(where_clauses)
+
+    #soql += " ORDER BY Name ASC"
+    soql += " LIMIT 500"  # limita para evitar consultas muito grandes
+    recs = sf.query_all(soql).get("records", [])
+
+    for r in recs:
+        r.pop("attributes", None)
+        id_opportunity = r.get("OpportunityId")
+        id_contact = r.get("ContactId")
+        #csoql
+
+    ctx = {
+        "moradores": recs,
+        "condominios": allowed,
+        "total": len(recs),
+        "morador": morador,
+        "condominio_pk": condominio_pk,  # 🔑 manda pro template saber qual option marcar
+    }
+    return render(request, "portaria/morador_list.html", ctx)
 
 @login_required
 def reservas_unidades(request):
@@ -1044,7 +1103,7 @@ def parse_salesforce_datetime_utc(dt_str):
 def get_all_fields(request):
     """Função utilitária para pegar todos os campos de um objeto Salesforce"""
     sf = sf_connect()
-    object_name = "Opportunity"
+    object_name = "OpportunityContactRole"
     limit = 200
     metadata = sf.restful(f"sobjects/{object_name}/describe")
     fields = [f["name"] for f in metadata["fields"]]

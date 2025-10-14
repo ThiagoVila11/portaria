@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Moradores · Recepção{% endblock %}
+{% block page_title %}Moradores{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:16px">
+
+  <!-- 🔹 Formulário de filtro -->
+  <form method="get" style="display:flex; gap:10px; margin-bottom:12px; flex-wrap: wrap;">
+    <label style="display:grid; gap:6px">
+      <span>Condomínio</span>
+      <select name="condominio" style="min-width:220px">
+        <option value="">Todos</option>
+        {% for c in condominios %}
+          <option value="{{ c.id }}" {% if q.condominio|default:'' == c.id|stringformat:'s' %}selected{% endif %}>
+            {{ c.nome }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label style="display:grid; gap:6px">
+      <span>Morador</span>
+      <input type="text" name="nome" value="{{ q.nome|default:'' }}" placeholder="Digite o nome do morador">
+    </label>
+
+    <label style="display:grid; gap:6px">
+      <span>Apartamento</span>
+      <input type="text" name="apartamento" value="{{ q.apartamento|default:'' }}" placeholder="Digite o apto do morador">
+    </label>
+
+    <div style="align-self:end; display:flex; gap:8px">
+      <button class="btn" type="submit">Filtrar</button>
+      <a class="btn-outline" href="{% url 'morador_unidades' %}">Limpar</a>
+    </div>
+  </form>
+
+  <p class="muted" style="margin: 6px 0 12px">
+    Resultados: <strong>{{ total }}</strong>
+  </p>
+
+  <table border="1" cellpadding="6" width="100%">
+    <thead>
+      <tr>
+        <th>Apartamento</th>
+        <th>Nome</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in moradores %}
+      <tr>
+        <td>{{ v.OpportunityId }}</td>
+        <td>{{ v.ContactId }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="2">Nenhum morador encontrado.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

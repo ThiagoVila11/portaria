@@ -162,6 +162,16 @@
         <span>Veículos</span>
       </a>
 
+<a class="navitem {% if url_name == 'morador_unidades' %}active{% endif %}" href="{% url 'morador_unidades' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M4 21v-2a4 4 0 0 1 3-3.87"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span>Moradores</span>
+      </a>
+
       <a class="navitem {% if url_name == 'reservas_unidades' %}active{% endif %}" href="{% url 'reservas_unidades' %}">
         <!-- Ícone de calendário / reservas -->
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" 

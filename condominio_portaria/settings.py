@@ -37,9 +37,9 @@ DATABASES = {
 
 # Internacionalização
 LANGUAGE_CODE = "pt-br"
-#TIME_ZONE = "America/Sao_Paulo"
+TIME_ZONE = "America/Sao_Paulo"
 USE_I18N = True
-#USE_TZ = True
+USE_TZ = True
 
 # Arquivos estáticos e de mídia
 STATIC_URL = "/static/"

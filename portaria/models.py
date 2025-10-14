@@ -17,6 +17,7 @@ class PackageName(models.TextChoices):
     Amazon = 'Amazon', 'Amazon'
     MercadoLivre = 'Mercado Livre', 'Mercado Livre'
     Correios = 'Correios', 'Correios'
+    Loggi = 'Loggi', 'Loggi'
     Outros = 'Outros', 'Outros'
 
 class Encomenda(models.Model):
