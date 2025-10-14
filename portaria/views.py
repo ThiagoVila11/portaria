@@ -71,7 +71,9 @@ def encomenda_list(request):
     if dt_fim:
         qs = qs.filter(data_recebimento__date__lte=dt_fim)
     if destinatario:
-        qs = qs.filter(destinatario__icontains=destinatario)
+        #qs = qs.filter(destinatario__icontains=destinatario)
+        qs = qs.filter(destinatario__nome__icontains=destinatario)
+
     if status:
         qs = qs.filter(status=status)
 
