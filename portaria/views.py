@@ -906,6 +906,7 @@ def morador_unidades(request):
     )
 
     # 🔹 Filtros
+    qs = qs.filter(ativo=True)  # só ativos
     if condominio_pk:
         qs = qs.filter(unidade__bloco__condominio_id=condominio_pk)
 
