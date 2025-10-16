@@ -33,11 +33,18 @@ class Encomenda(models.Model):
     data_entrega = models.DateTimeField(null=True, blank=True)
     entregue_por = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, related_name='encomendas_entregues')
     foto = models.ImageField(upload_to='encomendas/fotos/', blank=True)
+    arquivo_01 = models.FileField(upload_to='encomendas/arquivos/', blank=True)
+    arquivo_02 = models.FileField(upload_to='encomendas/arquivos/', blank=True)
+    arquivo_03 = models.FileField(upload_to='encomendas/arquivos/', blank=True)
+    arquivo_04 = models.FileField(upload_to='encomendas/arquivos/', blank=True)
+    arquivo_05 = models.FileField(upload_to='encomendas/arquivos/', blank=True)
     assinatura_entrega = models.ImageField(upload_to='encomendas/assinaturas/', blank=True)
     observacoes = models.TextField(blank=True)
     etiqueta_imagem = models.ImageField(upload_to="labels/", blank=True, null=True)  # OPCIONAL
     salesforce_ticket_id = models.CharField(max_length=18, blank=True) 
     PackageName = models.CharField(max_length=20, choices=PackageName.choices, blank=True)
+    SenhaRetirada = models.CharField(max_length=20, blank=True)
+    RetiradoPor = models.CharField(max_length=100, blank=True)
 
 
     class Meta:

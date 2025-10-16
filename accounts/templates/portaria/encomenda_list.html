@@ -1,110 +1,214 @@
 {% extends "base.html" %}
-
+{% load tz %}
 {% block title %}Encomendas · Portaria{% endblock %}
 {% block page_title %}Encomendas - Recepção{% endblock %}
 
 {% block content %}
-  <div class="card" style="padding:16px">
-    <form method="get" style="display:grid; gap:10px; margin-bottom:12px">
-      <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:end">
-        <label style="display:grid; gap:6px">
-          <span>Condomínio</span>
-          <select name="condominio" style="min-width:220px">
-            <option value="">Todos</option>
-            {% for c in condominios %}
-              <option value="{{ c.id }}" {% if q.condominio|default:'' == c.id|stringformat:"s" %}selected{% endif %}>
-                {{ c.nome }}
-              </option>
-            {% endfor %}
-          </select>
-        </label>
+<div class="card" style="padding:16px">
+  <form method="get" style="display:grid; gap:10px; margin-bottom:12px">
+    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:end">
+      <label style="display:grid; gap:6px">
+        <span>Condomínio</span>
+        <select name="condominio" style="min-width:220px">
+          <option value="">Todos</option>
+          {% for c in condominios %}
+            <option value="{{ c.id }}" {% if q.condominio|default:'' == c.id|stringformat:"s" %}selected{% endif %}>
+              {{ c.nome }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
 
-        <label style="display:grid; gap:6px">
-          <span>Data inicial</span>
-          <input type="date" name="dt_ini" value="{{ q.dt_ini|default:'' }}">
-        </label>
+      <label style="display:grid; gap:6px">
+        <span>Data inicial</span>
+        <input type="date" name="dt_ini" value="{{ q.dt_ini|default:'' }}">
+      </label>
 
-        <label style="display:grid; gap:6px">
-          <span>Data final</span>
-          <input type="date" name="dt_fim" value="{{ q.dt_fim|default:'' }}">
-        </label>
+      <label style="display:grid; gap:6px">
+        <span>Data final</span>
+        <input type="date" name="dt_fim" value="{{ q.dt_fim|default:'' }}">
+      </label>
 
-        <label style="display:grid; gap:6px">
-          <span>Destinatário</span>
-          <input type="text" name="destinatario" value="{{ q.destinatario|default:'' }}" placeholder="Nome do destinatário">
-        </label>
+      <label style="display:grid; gap:6px">
+        <span>Destinatário</span>
+        <input type="text" name="destinatario" value="{{ q.destinatario|default:'' }}" placeholder="Nome do destinatário">
+      </label>
 
-        <!-- 🔹 Novo filtro por status -->
-        <label style="display:grid; gap:6px">
-          <span>Status</span>
-          <select name="status" style="min-width:160px">
-            <option value="">Todos</option>
-            {% for valor, label in status_choices %}
-              <option value="{{ valor }}" {% if q.status == valor %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-          </select>
-        </label>
+      <label style="display:grid; gap:6px">
+        <span>Status</span>
+        <select name="status" style="min-width:160px">
+          <option value="">Todos</option>
+          {% for valor, label in status_choices %}
+            <option value="{{ valor }}" {% if q.status == valor %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
 
-        <div style="display:flex; gap:8px">
-          <button class="btn" type="submit">Filtrar</button>
-          <a class="btn-outline" href="{% url 'encomenda_list' %}">Limpar</a>
-        </div>
+      <div style="display:flex; gap:8px">
+        <button class="btn" type="submit">Filtrar</button>
+        <a class="btn-outline" href="{% url 'encomenda_list' %}">Limpar</a>
       </div>
-    </form>
+    </div>
+  </form>
 
-    <p class="muted" style="margin: 6px 0 12px">
-      Resultados: <strong>{{ total|default:encomendas|length }}</strong>
-    </p>
+  <p class="muted" style="margin: 6px 0 12px">
+    Resultados: <strong>{{ total|default:encomendas|length }}</strong>
+  </p>
 
-    <p>
-      <a class="btn" href="{% url 'encomenda_create' %}">Registrar recebimento</a>
-      <a class="btn-outline" style="margin-left:8px" href="{% url 'dashboard' %}">Voltar</a>
-    </p>
+  <p>
+    <a class="btn" href="{% url 'encomenda_create' %}">Registrar recebimento</a>
+    <a class="btn-outline" style="margin-left:8px" href="{% url 'dashboard' %}">Voltar</a>
+  </p>
 
-    <table border="1" cellpadding="6" width="100%">
-      <tr>
-        <th>ID</th>
-        <th>Unidade</th>
-        <th>Destinatário</th>
-        <th>Recebido em</th>
-        <th>Retirado em</th>
-        <th>Retirado por</th>
-        <th>Observações</th>
-        <th>Status</th>
-        <th style="white-space:nowrap">Ação</th>
-      </tr>
-      {% for e in encomendas %}
-      <tr>
-        <td>{{ e.id }}</td>
-        <td>{{ e.unidade }}</td>
-        <td>{{ e.destinatario }}</td>
-        <td>{{ e.data_recebimento|date:"d/m/Y H:i" }}</td>
-        <td>{{ e.data_entrega|date:"d/m/Y H:i" }}</td>
-        <td>{{ e.recebido_por }}</td>
-        <td>{{ e.observacoes }}</td>
-        <td>{{ e.get_status_display }}</td>
-        <td style="white-space:nowrap">
-          {% if perms.portaria.pode_entregar_encomenda and e.status == 'RECEBIDA' %}
-            <form method="post" action="{% url 'encomenda_entregar' e.id %}" style="display:inline">{% csrf_token %}
-              <button class="btn-outline">Entregar</button>
-            </form>
-          {% endif %}
+  <table border="1" cellpadding="6" width="100%">
+    <tr>
+      <th>ID</th>
+      <th>Unidade</th>
+      <th>Destinatário</th>
+      <th>Recebido em</th>
+      <th>Retirado em</th>
+      <th>Retirado por</th>
+      <th>Observações</th>
+      <th>Status</th>
+      <th style="display:none;">Senha Retirada</th>
+      <th style="white-space:nowrap">Ação</th>
+    </tr>
+    {% for e in encomendas %}
+    <tr>
+      <td>{{ e.id }}</td>
+      <td>{{ e.unidade }}</td>
+      <td>{{ e.destinatario }}</td>
+      <td>{{ e.data_recebimento|localtime|date:"d/m/Y H:i" }}</td>
+      <td>{{ e.data_entrega|localtime|date:"d/m/Y H:i" }}</td>
+      <td>{{ e.recebido_por }}</td>
+      <td>{{ e.observacoes }}</td>
+      <td>{{ e.get_status_display }}</td>
+      <td style="display:none;">{{ e.SenhaRetirada }}</td>
+      <td style="white-space:nowrap">
 
-          {% if e.status != "ENTREGUE" %}
-            <form action="{% url 'encomenda_delete' e.id %}" method="post" style="display:inline;">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-danger btn-sm"
-                      onclick="return confirm('Tem certeza que deseja excluir esta encomenda?');">
-                Excluir
-              </button>
-            </form>
-          {% endif %}
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="9">Nenhuma encomenda encontrada para o filtro aplicado.</td></tr>
-      {% endfor %}
-    </table>
+        {% if perms.portaria.pode_entregar_encomenda and e.status == 'RECEBIDA' %}
+          <form method="post" action="{% url 'encomenda_entregar' e.id %}"
+                style="display:inline" class="entrega-form">
+            {% csrf_token %}
+            <input type="hidden" name="senha_correta" value="{{ e.SenhaRetirada|default:'' }}">
+            <input type="hidden" name="retirado_por" value="">
+            <button type="button" class="btn-outline btn-entregar">Entregar</button>
+          </form>
+        {% endif %}
 
+        {% if e.status != "ENTREGUE" %}
+          <form action="{% url 'encomenda_delete' e.id %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm"
+                    onclick="return confirm('Tem certeza que deseja excluir esta encomenda?');">
+              Excluir
+            </button>
+          </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="9">Nenhuma encomenda encontrada para o filtro aplicado.</td></tr>
+    {% endfor %}
+  </table>
+
+</div>
+
+<!-- 🔹 Popup de confirmação -->
+<div id="senha-popup" style="
+  display:none;
+  position:fixed;
+  top:0; left:0; right:0; bottom:0;
+  background:rgba(0,0,0,0.6);
+  align-items:center;
+  justify-content:center;
+  z-index:9999;">
+  <div style="
+    background:white;
+    padding:20px;
+    border-radius:8px;
+    width:320px;
+    text-align:center;">
+    <h3>Confirme a Retirada</h3>
+    <input type="password" id="senha-input" class="form-control" placeholder="Digite a senha" style="margin:10px 0; width:100%;">
+    <input type="text" id="retirado-input" class="form-control" placeholder="Retirado por" style="margin:10px 0; width:100%;">
+    <div style="display:flex; justify-content:space-between;">
+      <button id="senha-cancelar" class="btn-outline">Cancelar</button>
+      <button id="senha-confirmar" class="btn">Confirmar</button>
+    </div>
   </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const popup = document.getElementById("senha-popup");
+  const senhaInput = document.getElementById("senha-input");
+  const retiradoInput = document.getElementById("retirado-input");
+  const btnConfirmar = document.getElementById("senha-confirmar");
+  const btnCancelar = document.getElementById("senha-cancelar");
+  let currentForm = null;
+  let senhaCorreta = "";
+
+  // Ao clicar no botão Entregar
+  document.querySelectorAll(".btn-entregar").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const form = e.target.closest(".entrega-form");
+      senhaCorreta = form.querySelector("input[name='senha_correta']").value;
+      console.log("Senha encontrada:", senhaCorreta);
+
+      if (senhaCorreta) {
+        currentForm = form;
+        senhaInput.value = "";
+        retiradoInput.value = "";
+        popup.style.display = "flex";
+        senhaInput.focus();
+      } else {
+        // Sem senha → entrega direta
+        form.submit();
+      }
+    });
+  });
+
+  // Cancelar popup
+  btnCancelar.addEventListener("click", () => {
+    popup.style.display = "none";
+    currentForm = null;
+  });
+
+  // Confirmar senha
+  btnConfirmar.addEventListener("click", () => {
+    if (!currentForm) return;
+
+    const senhaDigitada = senhaInput.value.trim();
+    const retiradoPor = retiradoInput.value.trim();
+
+    if (!retiradoPor) {
+      alert("Por favor, informe quem retirou a encomenda.");
+      retiradoInput.focus();
+      return;
+    }
+
+    if (senhaCorreta && senhaDigitada !== senhaCorreta.trim()) {
+      alert("Senha incorreta. Tente novamente.");
+      senhaInput.value = "";
+      senhaInput.focus();
+      return;
+    }
+
+    // Senha OK → define o campo hidden e envia o form
+    currentForm.querySelector("input[name='retirado_por']").value = retiradoPor;
+    popup.style.display = "none";
+    currentForm.submit();
+  });
+
+  // Pressionar Enter
+  senhaInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") btnConfirmar.click();
+  });
+  retiradoInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") btnConfirmar.click();
+  });
+});
+</script>
+
 {% endblock %}

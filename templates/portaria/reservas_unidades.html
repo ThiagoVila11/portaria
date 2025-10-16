@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load timezone_filters %}
 {% block title %}Reservas · Portaria{% endblock %}
 {% block page_title %}Reservas - Recepção{% endblock %}
 
@@ -67,8 +68,8 @@
           <td>{{ v.Opportunity_property__c }}</td>
           <td>{{ v.Contact__r.Name }}</td>
           <td>{{ v.reda__Description__c }}</td>
-          <td>{{ v.reda__Start_Datetime__c}}</td>
-          <td>{{ v.reda__End_Datetime__c}}</td>
+          <td>{{ v.reda__Start_Datetime__c|local_sp}}</td>
+          <td>{{ v.reda__End_Datetime__c|local_sp}}</td>
           <td>{{ v.reda__Total_Booking_Amount__c }}</td>
           <td>{{ v.Status_PT }}</td>
         </tr>

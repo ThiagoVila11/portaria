@@ -73,6 +73,11 @@ class EncomendaForm(forms.ModelForm):
             "PackageName",
             "etiqueta_imagem",
             "status",
+            "arquivo_01",
+            "arquivo_02",
+            "arquivo_03",
+            "arquivo_04",
+            "arquivo_05",
         ]
         widgets = {
             "observacoes": forms.Textarea(attrs={"rows": 3}),

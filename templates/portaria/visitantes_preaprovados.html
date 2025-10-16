@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load timezone_filters %}
 {% block title %}Visitantes Pré-Aprovados · Portaria{% endblock %}
 {% block page_title %}Visitantes Pré-Aprovados{% endblock %}
 
@@ -41,8 +42,8 @@
       <td>{{ v.reda__Guest_Phone__c }}</td>
       <td>{{ v.reda__Property__r.Name }}</td>
       <td>{{ v.reda__Contact__r.Name }}</td>
-      <td>{{ v.CreatedDate }}</td>
-      <td>{{ v.reda__Permitted_Till_Datetime__c}}</td>
+      <td>{{ v.CreatedDate|local_sp }}</td>
+      <td>{{ v.reda__Permitted_Till_Datetime__c|local_sp}}</td>
       
     </tr>
     {% empty %}

@@ -1,3 +1,5 @@
+import base64
+import os
 from django.contrib.auth.decorators import login_required, permission_required
 from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect, get_object_or_404
@@ -48,6 +50,7 @@ from .models import Encomenda
 
 @login_required
 def encomenda_list(request):
+    sf = sf_connect()
     allowed = allowed_condominios_for(request.user)
     qs = Encomenda.objects.select_related("unidade", "condominio").filter(condominio__in=allowed)
 
@@ -79,6 +82,33 @@ def encomenda_list(request):
 
     qs = qs.order_by("-data_recebimento")
 
+    for e in qs:
+        if not e.salesforce_ticket_id:
+            continue  # só atualiza se tiver o ID do Visitor Log salvo
+
+        try:
+            # Consulta SOQL no Salesforce
+            soql = f"""
+                SELECT Id, Password__c
+                FROM reda__Ticket__c
+                WHERE Id = '{e.salesforce_ticket_id}'
+            """
+            result = sf.query(soql).get("records", [])
+            print(f"Consulta SOQL para {e.destinatario} (ID {e.salesforce_ticket_id}): {result}")
+
+            if result:
+                senharetirada = result[0].get("Password__c")
+                print(f"Senha retirada do Salesforce: {senharetirada}")
+                campos_para_salvar = []
+                e.SenhaRetirada = senharetirada
+                campos_para_salvar.append("SenhaRetirada")
+                if campos_para_salvar:
+                    e.save(update_fields=campos_para_salvar)
+                    print(f"✅ Atualizado {e.destinatario}: senha:{e.SenhaRetirada}")
+
+        except Exception as e:
+            print(f"⚠️ Erro ao atualizar {e}")
+
     ctx = {
         "encomendas": qs,
         "condominios": allowed,
@@ -109,14 +139,26 @@ def encomenda_create(request):
             is_create=True,
             allowed_condominios=allowed_condominios,
         )
+        print("Arquivos enviados:", request.FILES)
+        print(f"Form valid: {form.is_valid()}")
         if form.is_valid():
             encomenda = form.save(commit=False)
             encomenda.status = "RECEBIDA"
             encomenda.recebido_por = request.user
             if not encomenda.data_recebimento:
                 encomenda.data_recebimento = timezone.now()
-            encomenda.save()
+            #encomenda.save()
+            print(f"Encomenda antes de salvar: {encomenda}")
+            # ✅ Salva os arquivos associados agora
+            for i in range(1, 6):
+                arquivo = form.cleaned_data.get(f"arquivo_0{i}")
+                print(f"Arquivo na tabela encomendas {i}: {arquivo}")
+                if arquivo:
+                    setattr(encomenda, f"arquivo_0{i}", arquivo)
+                    print(f"Salvando arquivo {i} para encomenda {encomenda.id}")
 
+            encomenda.save() 
+            print(f"Encomenda {encomenda.id} salva com sucesso.")
             # 🔑 só sincroniza se ainda não estiver integrado
             if not encomenda.salesforce_ticket_id:
                 print("Tentando integrar com Salesforce...")
@@ -149,9 +191,11 @@ def encomenda_create(request):
 def encomenda_entregar(request, pk):
     enc = get_object_or_404(Encomenda, pk=pk)
     if request.method == 'POST':
+        retirado_por = request.POST.get("retirado_por", "").strip()
         enc.status = StatusEncomenda.ENTREGUE
         enc.data_entrega = timezone.now()
         enc.entregue_por = request.user
+        enc.RetiradoPor = retirado_por
         enc.save()
         # 🔑 Atualizar no Salesforce
         ok = update_encomenda_in_salesforce(enc)
@@ -1114,3 +1158,40 @@ def get_property_id(r):
         return r["reda__Opportunity__r"]["reda__Region__r"]["Id"]
     except (KeyError, TypeError):
         return None
+    
+def anexar_arquivo_salesforce(file_path, opportunity_id, titulo="Anexo"):
+    """Envia um arquivo local para a Opportunity no Salesforce."""
+    sf = sf_connect()
+    if not os.path.exists(file_path):
+        print(f"⚠️ Arquivo não encontrado: {file_path}")
+        return None
+
+    with open(file_path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("utf-8")
+
+    # Cria ContentVersion
+    filename = os.path.basename(file_path)
+    content_data = {
+        "Title": titulo,
+        "PathOnClient": filename,
+        "VersionData": encoded,
+    }
+
+    response = sf.ContentVersion.create(content_data)
+    content_version_id = response.get("id")
+    print(f"✅ ContentVersion criado: {content_version_id}")
+
+    # Obtém o ContentDocumentId
+    query = f"SELECT ContentDocumentId FROM ContentVersion WHERE Id = '{content_version_id}'"
+    result = sf.query(query)
+    content_doc_id = result["records"][0]["ContentDocumentId"]
+
+    # Faz o vínculo com a Opportunity
+    link_data = {
+        "ContentDocumentId": content_doc_id,
+        "LinkedEntityId": opportunity_id,
+        "ShareType": "V",
+        "Visibility": "AllUsers",
+    }
+    sf.ContentDocumentLink.create(link_data)
+    print(f"🔗 Arquivo {filename} vinculado à Opportunity {opportunity_id}")

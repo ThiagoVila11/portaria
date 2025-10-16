@@ -15,18 +15,18 @@
       </div>
     {% endif %}
 
-    <!-- Campos (render explícito, bonito e com erros por campo) -->
+    <!-- Campos -->
     <div style="display:grid; gap:10px; grid-template-columns: repeat(2, minmax(220px, 1fr));">
 
       <label style="display:grid; gap:6px">
         <span>Condomínio</span>
-        {{ form.condominio}}
+        {{ form.condominio }}
         {{ form.condominio.errors }}
       </label>
 
       <label style="display:grid; gap:6px">
         <span>Unidade</span>
-        {{ form.unidade}}
+        {{ form.unidade }}
         {{ form.unidade.errors }}
       </label>
 
@@ -37,7 +37,7 @@
       </label>
 
       <label style="display:grid; gap:6px; grid-column: 1 / -1;">
-        <span>Tipo </span>
+        <span>Tipo</span>
         {{ form.PackageName }}
         {{ form.PackageName.errors }}
       </label>
@@ -53,12 +53,26 @@
       {% endif %}
 
       <input type="hidden" name="status" value="RECEBIDA">
+
+      <hr style="margin:12px 0;">
+      <h4>Anexos (máximo 5)</h4>
+
+      <div id="file-inputs" style="display:grid; gap:10px;">
+        <input type="file" name="arquivo_01" id="arquivo_01" accept="application/pdf,image/*">
+        <input type="file" name="arquivo_02" id="arquivo_02" style="display:none;" accept="application/pdf,image/*">
+        <input type="file" name="arquivo_03" id="arquivo_03" style="display:none;" accept="application/pdf,image/*">
+        <input type="file" name="arquivo_04" id="arquivo_04" style="display:none;" accept="application/pdf,image/*">
+        <input type="file" name="arquivo_05" id="arquivo_05" style="display:none;" accept="application/pdf,image/*">
+      </div>
+
     </div>
 
-    <div style="display:flex; gap:8px; margin-top:8px">
-      <button class="btn" type="submit">Salvar</button>
+    <!-- 🔹 Botões alinhados -->
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
+      <button class="btn" type="submit">Salvar Encomenda</button>
       <a class="btn-outline" href="{% url 'encomenda_list' %}">Cancelar</a>
     </div>
+
   </form>
 </div>
 {% endblock %}
@@ -110,5 +124,18 @@
     carregarMoradores($uni.value);
   }
 })();
+
+  // 🔹 Exibe dinamicamente os inputs de arquivos
+  document.addEventListener("DOMContentLoaded", () => {
+    for (let i = 1; i <= 5; i++) {
+      const input = document.getElementById(`arquivo_0${i}`);
+      input?.addEventListener("change", () => {
+        if (input.files.length > 0 && i < 5) {
+          const next = document.getElementById(`arquivo_0${i + 1}`);
+          if (next) next.style.display = "block";
+        }
+      });
+    }
+  });
 </script>
 {% endblock %}
