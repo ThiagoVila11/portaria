@@ -107,7 +107,9 @@ def sync_encomenda_to_salesforce(encomenda) -> Optional[str]:
     if res.get("success"):
         if fields["pacote_oportunidade"]:
             opportunity_id = fields["pacote_oportunidade"]
-            print(f"Anexando arquivos da encomenda {encomenda.id} à Opportunity {opportunity_id}...")
+            ticket_id = res.get("id")
+            print(f"Vinculando t {ticket_id} à Opportunity {opportunity_id}...")
+            #print(f"Anexando arquivos da encomenda {encomenda.id} à Opportunity {opportunity_id}...")
             base_dir = settings.MEDIA_ROOT
             print(f"Base dir: {base_dir}")
             for i in range(1, 6):
@@ -119,7 +121,7 @@ def sync_encomenda_to_salesforce(encomenda) -> Optional[str]:
                     print(f"Caminho completo do arquivo {i}: {file_path}")
                     titulo = f"Encomenda {encomenda.id} - Arquivo {i}"
                     print(f"Anexando arquivo {file_path} com título '{titulo}'...")
-                    anexar_arquivo_salesforce(file_path, opportunity_id, titulo)
+                    anexar_arquivo_salesforce(file_path, ticket_id, titulo)
 
         return res.get("id")
     return None

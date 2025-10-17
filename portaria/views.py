@@ -192,6 +192,7 @@ def encomenda_entregar(request, pk):
     enc = get_object_or_404(Encomenda, pk=pk)
     if request.method == 'POST':
         retirado_por = request.POST.get("retirado_por", "").strip()
+        print("Retirado por:", retirado_por)
         enc.status = StatusEncomenda.ENTREGUE
         enc.data_entrega = timezone.now()
         enc.entregue_por = request.user

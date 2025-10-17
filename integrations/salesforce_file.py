@@ -3,7 +3,7 @@ import os
 from simple_salesforce import Salesforce
 from integrations.allvisitorlogs import sf_connect
 
-def anexar_arquivo_salesforce(file_path, opportunity_id, titulo="Anexo"):
+def anexar_arquivo_salesforce(file_path, ticket_id, titulo="Anexo"):
     """Envia um arquivo local para a Opportunity no Salesforce."""
     sf = sf_connect()
     if not os.path.exists(file_path):
@@ -33,9 +33,9 @@ def anexar_arquivo_salesforce(file_path, opportunity_id, titulo="Anexo"):
     # Faz o vínculo com a Opportunity
     link_data = {
         "ContentDocumentId": content_doc_id,
-        "LinkedEntityId": opportunity_id,
+        "LinkedEntityId": ticket_id,
         "ShareType": "V",
         "Visibility": "AllUsers",
     }
     sf.ContentDocumentLink.create(link_data)
-    print(f"🔗 Arquivo {filename} vinculado à Opportunity {opportunity_id}")
+    print(f"🔗 Arquivo {filename} vinculado à Opportunity {ticket_id}")

@@ -80,7 +80,7 @@
       <td>{{ e.destinatario }}</td>
       <td>{{ e.data_recebimento|localtime|date:"d/m/Y H:i" }}</td>
       <td>{{ e.data_entrega|localtime|date:"d/m/Y H:i" }}</td>
-      <td>{{ e.recebido_por }}</td>
+      <td>{{ e.RetiradoPor }}</td>
       <td>{{ e.observacoes }}</td>
       <td>{{ e.get_status_display }}</td>
       <td style="display:none;">{{ e.SenhaRetirada }}</td>
@@ -153,19 +153,15 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".btn-entregar").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const form = e.target.closest(".entrega-form");
-      senhaCorreta = form.querySelector("input[name='senha_correta']").value;
-      console.log("Senha encontrada:", senhaCorreta);
+      senhaCorreta = form.querySelector("input[name='senha_correta']").value || "";
+      console.log("Senha esperada:", senhaCorreta);
 
-      if (senhaCorreta) {
-        currentForm = form;
-        senhaInput.value = "";
-        retiradoInput.value = "";
-        popup.style.display = "flex";
-        senhaInput.focus();
-      } else {
-        // Sem senha → entrega direta
-        form.submit();
-      }
+      // Sempre abre o popup, mesmo sem senha
+      currentForm = form;
+      senhaInput.value = "";
+      retiradoInput.value = "";
+      popup.style.display = "flex";
+      senhaInput.focus();
     });
   });
 
@@ -188,6 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    // Se existe senha no registro → valida; senão, ignora
     if (senhaCorreta && senhaDigitada !== senhaCorreta.trim()) {
       alert("Senha incorreta. Tente novamente.");
       senhaInput.value = "";
@@ -195,7 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Senha OK → define o campo hidden e envia o form
+    // OK → define o campo hidden e envia o form
     currentForm.querySelector("input[name='retirado_por']").value = retiradoPor;
     popup.style.display = "none";
     currentForm.submit();
