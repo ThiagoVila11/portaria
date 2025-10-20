@@ -87,24 +87,25 @@ def encomenda_list(request):
             continue  # só atualiza se tiver o ID do Visitor Log salvo
 
         try:
-            # Consulta SOQL no Salesforce
-            soql = f"""
-                SELECT Id, Password__c
-                FROM reda__Ticket__c
-                WHERE Id = '{e.salesforce_ticket_id}'
-            """
-            result = sf.query(soql).get("records", [])
-            #print(f"Consulta SOQL para {e.destinatario} (ID {e.salesforce_ticket_id}): {result}")
+            if not e.SenhaRetirada:
+                # Consulta SOQL no Salesforce
+                soql = f"""
+                    SELECT Id, Password__c
+                    FROM reda__Ticket__c
+                    WHERE Id = '{e.salesforce_ticket_id}'
+                """
+                result = sf.query(soql).get("records", [])
+                #print(f"Consulta SOQL para {e.destinatario} (ID {e.salesforce_ticket_id}): {result}")
 
-            if result:
-                senharetirada = result[0].get("Password__c")
-                #print(f"Senha retirada do Salesforce: {senharetirada}")
-                campos_para_salvar = []
-                e.SenhaRetirada = senharetirada
-                campos_para_salvar.append("SenhaRetirada")
-                if campos_para_salvar:
-                    e.save(update_fields=campos_para_salvar)
-                    #print(f"✅ Atualizado {e.destinatario}: senha:{e.SenhaRetirada}")
+                if result:
+                    senharetirada = result[0].get("Password__c")
+                    #print(f"Senha retirada do Salesforce: {senharetirada}")
+                    campos_para_salvar = []
+                    e.SenhaRetirada = senharetirada
+                    campos_para_salvar.append("SenhaRetirada")
+                    if campos_para_salvar:
+                        e.save(update_fields=campos_para_salvar)
+                        #print(f"✅ Atualizado {e.destinatario}: senha:{e.SenhaRetirada}")
 
         except Exception as e:
             print(f"⚠️ Erro ao atualizar {e}")
