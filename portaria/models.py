@@ -43,8 +43,8 @@ class Encomenda(models.Model):
     etiqueta_imagem = models.ImageField(upload_to="labels/", blank=True, null=True)  # OPCIONAL
     salesforce_ticket_id = models.CharField(max_length=18, blank=True) 
     PackageName = models.CharField(max_length=20, choices=PackageName.choices, blank=True)
-    SenhaRetirada = models.CharField(max_length=20, blank=True)
-    RetiradoPor = models.CharField(max_length=100, blank=True)
+    SenhaRetirada = models.CharField(max_length=20, blank=True, null=True)
+    RetiradoPor = models.CharField(max_length=100, blank=True, null=True)
 
 
     class Meta:
