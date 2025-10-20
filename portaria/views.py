@@ -63,7 +63,7 @@ def encomenda_list(request):
     # 🔹 Se for a primeira carga (sem filtros), define as datas padrão
     if not any([dt_ini, dt_fim, condominio, destinatario, status]):
         hoje = date.today()
-        dt_ini = hoje.replace(day=1).isoformat()  # primeiro dia do mês
+        dt_ini = hoje.isoformat() #hoje.replace(day=1).isoformat()  # primeiro dia do mês
         dt_fim = hoje.isoformat()                 # data atual
 
     # 🔹 Filtros
