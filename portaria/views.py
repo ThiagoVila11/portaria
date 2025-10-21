@@ -81,9 +81,10 @@ def encomenda_list(request):
                     SELECT Id, Password__c
                     FROM reda__Ticket__c
                     WHERE Id = '{e.salesforce_ticket_id}'
+                    and Password__c != null
                 """
                 result = sf.query(soql).get("records", [])
-                #print(f"Consulta SOQL para {e.destinatario} (ID {e.salesforce_ticket_id}): {result}")
+                print(f"Consulta SOQL para {e.destinatario} (ID {e.salesforce_ticket_id}): {result}")
 
                 if result:
                     senharetirada = result[0].get("Password__c")
