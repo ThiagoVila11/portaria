@@ -334,8 +334,13 @@ def acesso_list(request):
 
     qs = qs.order_by("-criado_em")
 
+# 🔹 Paginação — 20 por página
+    paginator = Paginator(qs, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
     ctx = {
-        "eventos": qs,
+        "eventos": page_obj, #qs,
         "condominios": allowed,
         "q": {
             "condominio": condominio_id or "",
