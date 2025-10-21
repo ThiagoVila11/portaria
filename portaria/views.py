@@ -23,6 +23,7 @@ from django.http import JsonResponse
 from collections import OrderedDict
 from datetime import datetime
 from django.utils import timezone
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 
 @login_required
@@ -97,8 +98,18 @@ def encomenda_list(request):
         #except Exception as e:
         #    print(f"⚠️ Erro ao atualizar {e}")
 
+    # 🔹 Paginação (20 por página)
+    paginator = Paginator(qs, 20)
+    page = request.GET.get("page")
+    try:
+        encomendas = paginator.page(page)
+    except PageNotAnInteger:
+        encomendas = paginator.page(1)
+    except EmptyPage:
+        encomendas = paginator.page(paginator.num_pages)
+
     ctx = {
-        "encomendas": qs,
+        "encomendas": encomendas,
         "condominios": allowed,
         "status_choices": Encomenda._meta.get_field("status").choices,  # compatível com qualquer estrutura
         "q": {
