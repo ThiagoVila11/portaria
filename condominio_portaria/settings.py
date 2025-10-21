@@ -117,3 +117,19 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "login"
+
+# Celery
+CELERY_BROKER_URL = "redis://localhost:6379/0"  # ou amqp://guest:guest@localhost//
+CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+
+CELERY_TIMEZONE = "America/Sao_Paulo"
+CELERY_ENABLE_UTC = False
+
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    "atualizar_senhas_encomendas_cada_30min": {
+        "task": "portaria.tasks.atualizar_senhas_encomendas",
+        "schedule": crontab(minute="*/30"),  # 🔁 a cada 30 minutos
+    },
+}

@@ -5,17 +5,15 @@
 
 {% block content %}
 <div class="card" style="padding:16px">
-  <form method="post" enctype="multipart/form-data" style="display:grid; gap:12px">
+  <form id="encomenda-form" method="post" enctype="multipart/form-data" style="display:grid; gap:12px">
     {% csrf_token %}
 
-    <!-- Erros gerais -->
     {% if form.non_field_errors %}
       <div class="msg error">
         {{ form.non_field_errors }}
       </div>
     {% endif %}
 
-    <!-- Campos -->
     <div style="display:grid; gap:10px; grid-template-columns: repeat(2, minmax(220px, 1fr));">
 
       <label style="display:grid; gap:6px">
@@ -69,7 +67,7 @@
 
     <!-- 🔹 Botões alinhados -->
     <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
-      <button class="btn" type="submit">Salvar Encomenda</button>
+      <button id="btn-salvar" class="btn" type="submit">Salvar Encomenda</button>
       <a class="btn-outline" href="{% url 'encomenda_list' %}">Cancelar</a>
     </div>
 
@@ -92,7 +90,7 @@
     }
     const resp = await fetch(`/ajax/unidades/${condId}/`, {credentials: 'same-origin'});
     $uni.innerHTML = await resp.text();
-    $dest.innerHTML = '<option value="">—</option>'; // limpa destinatário
+    $dest.innerHTML = '<option value="">—</option>';
   }
 
   async function carregarMoradores(uniId){
@@ -116,7 +114,6 @@
     });
   }
 
-  // se já houver valores selecionados (edição ou POST inválido), carrega automaticamente
   if($cond && $cond.value){
     carregarUnidades($cond.value);
   }
@@ -136,6 +133,17 @@
         }
       });
     }
+
+    // 🔹 Evita múltiplos envios do formulário
+    const form = document.getElementById("encomenda-form");
+    const btnSalvar = document.getElementById("btn-salvar");
+
+    form.addEventListener("submit", () => {
+      btnSalvar.disabled = true;
+      btnSalvar.textContent = "Salvando...";
+      btnSalvar.style.opacity = "0.7";
+      btnSalvar.style.cursor = "not-allowed";
+    });
   });
 </script>
 {% endblock %}
