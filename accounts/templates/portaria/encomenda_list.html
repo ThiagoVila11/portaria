@@ -60,57 +60,60 @@
     <a class="btn-outline" style="margin-left:8px" href="{% url 'dashboard' %}">Voltar</a>
   </p>
 
-  <table border="1" cellpadding="6" width="100%">
-    <tr>
-      <th>ID</th>
-      <th>Unidade</th>
-      <th>Destinatário</th>
-      <th>Recebido em</th>
-      <th>Retirado em</th>
-      <th>Retirado por</th>
-      <th>Observações</th>
-      <th>Status</th>
-      <th style="display:none;">Senha Retirada</th>
-      <th style="white-space:nowrap">Ação</th>
-    </tr>
-    {% for e in encomendas %}
-    <tr>
-      <td>{{ e.id }}</td>
-      <td>{{ e.unidade }}</td>
-      <td>{{ e.destinatario }}</td>
-      <td>{{ e.data_recebimento|localtime|date:"d/m/Y H:i" }}</td>
-      <td>{{ e.data_entrega|localtime|date:"d/m/Y H:i" }}</td>
-      <td>{{ e.RetiradoPor }}</td>
-      <td>{{ e.observacoes }}</td>
-      <td>{{ e.get_status_display }}</td>
-      <td style="display:none;">{{ e.SenhaRetirada }}</td>
-      <td style="white-space:nowrap">
+    <table border="1" cellpadding="6" width="100%" style="font-size: 13px; border-collapse: collapse;">
+    <thead style="background: #f8f9fa;">
+      <tr>
+        <th>ID</th>
+        <th>Unidade</th>
+        <th>Destinatário</th>
+        <th>Recebido em</th>
+        <th>Retirado em</th>
+        <th>Retirado por</th>
+        <th>Observações</th>
+        <th>Status</th>
+        <th style="display:none;">Senha Retirada</th>
+        <th style="white-space:nowrap">Ação</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in encomendas %}
+      <tr>
+        <td>{{ e.id }}</td>
+        <td>{{ e.unidade }}</td>
+        <td>{{ e.destinatario }}</td>
+        <td>{{ e.data_recebimento|localtime|date:"d/m/Y H:i" }}</td>
+        <td>{{ e.data_entrega|localtime|date:"d/m/Y H:i" }}</td>
+        <td>{{ e.RetiradoPor }}</td>
+        <td>{{ e.observacoes }}</td>
+        <td>{{ e.get_status_display }}</td>
+        <td style="display:none;">{{ e.SenhaRetirada }}</td>
+        <td style="white-space:nowrap">
+          {% if perms.portaria.pode_entregar_encomenda and e.status == 'RECEBIDA' %}
+            <form method="post" action="{% url 'encomenda_entregar' e.id %}" style="display:inline" class="entrega-form">
+              {% csrf_token %}
+              <input type="hidden" name="senha_correta" value="{{ e.SenhaRetirada|default:'' }}">
+              <input type="hidden" name="retirado_por" value="">
+              <button type="button" class="btn-outline btn-entregar" style="font-size:12px;">Entregar</button>
+            </form>
+          {% endif %}
 
-        {% if perms.portaria.pode_entregar_encomenda and e.status == 'RECEBIDA' %}
-          <form method="post" action="{% url 'encomenda_entregar' e.id %}"
-                style="display:inline" class="entrega-form">
-            {% csrf_token %}
-            <input type="hidden" name="senha_correta" value="{{ e.SenhaRetirada|default:'' }}">
-            <input type="hidden" name="retirado_por" value="">
-            <button type="button" class="btn-outline btn-entregar">Entregar</button>
-          </form>
-        {% endif %}
-
-        {% if e.status != "ENTREGUE" %}
-          <form action="{% url 'encomenda_delete' e.id %}" method="post" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-danger btn-sm"
-                    onclick="return confirm('Tem certeza que deseja excluir esta encomenda?');">
-              Excluir
-            </button>
-          </form>
-        {% endif %}
-      </td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="9">Nenhuma encomenda encontrada para o filtro aplicado.</td></tr>
-    {% endfor %}
+          {% if e.status != "ENTREGUE" %}
+            <form action="{% url 'encomenda_delete' e.id %}" method="post" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-sm" style="font-size:12px;"
+                      onclick="return confirm('Tem certeza que deseja excluir esta encomenda?');">
+                Excluir
+              </button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="9">Nenhuma encomenda encontrada para o filtro aplicado.</td></tr>
+      {% endfor %}
+    </tbody>
   </table>
+
   {% if encomendas.has_other_pages %}
     <div style="margin-top:20px; text-align:center;">
       <div style="display:inline-flex; gap:4px;">
