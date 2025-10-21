@@ -35,19 +35,6 @@ def dashboard(request):
     return render(request, 'portaria/dashboard.html', ctx)
 
 
-#@login_required
-#def encomenda_list(request):
-#    encomendas = Encomenda.objects.select_related('destinatario', 'unidade', 'condominio').order_by('-data_recebimento')
-#    return render(request, 'portaria/encomenda_list.html', {'encomendas': encomendas})
-
-# portaria/views.py
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from django.utils.dateparse import parse_date
-from django.db import models  # <- para detectar FK
-from portaria.permissions import allowed_condominios_for
-from .models import Encomenda
-
 @login_required
 def encomenda_list(request):
     sf = sf_connect()
@@ -63,7 +50,7 @@ def encomenda_list(request):
     # 🔹 Se for a primeira carga (sem filtros), define as datas padrão
     if not any([dt_ini, dt_fim, condominio, destinatario, status]):
         hoje = date.today()
-        dt_ini = hoje.isoformat() #hoje.replace(day=1).isoformat()  # primeiro dia do mês
+        dt_ini = hoje.replace(day=1).isoformat()  # primeiro dia do mês
         dt_fim = hoje.isoformat()                 # data atual
 
     # 🔹 Filtros
@@ -86,29 +73,29 @@ def encomenda_list(request):
         if not e.salesforce_ticket_id:
             continue  # só atualiza se tiver o ID do Visitor Log salvo
 
-        try:
-            if not e.SenhaRetirada:
+        #try:
+            #if not e.SenhaRetirada:
                 # Consulta SOQL no Salesforce
-                soql = f"""
-                    SELECT Id, Password__c
-                    FROM reda__Ticket__c
-                    WHERE Id = '{e.salesforce_ticket_id}'
-                """
-                result = sf.query(soql).get("records", [])
-                #print(f"Consulta SOQL para {e.destinatario} (ID {e.salesforce_ticket_id}): {result}")
+                #soql = f"""
+                #    SELECT Id, Password__c
+                #    FROM reda__Ticket__c
+                #    WHERE Id = '{e.salesforce_ticket_id}'
+                #"""
+                #result = sf.query(soql).get("records", [])
+                ##print(f"Consulta SOQL para {e.destinatario} (ID {e.salesforce_ticket_id}): {result}")
 
-                if result:
-                    senharetirada = result[0].get("Password__c")
+                #if result:
+                #    senharetirada = result[0].get("Password__c")
                     #print(f"Senha retirada do Salesforce: {senharetirada}")
-                    campos_para_salvar = []
-                    e.SenhaRetirada = senharetirada
-                    campos_para_salvar.append("SenhaRetirada")
-                    if campos_para_salvar:
-                        e.save(update_fields=campos_para_salvar)
+                #    campos_para_salvar = []
+                #    e.SenhaRetirada = senharetirada
+                #    campos_para_salvar.append("SenhaRetirada")
+                #    if campos_para_salvar:
+                #        e.save(update_fields=campos_para_salvar)
                         #print(f"✅ Atualizado {e.destinatario}: senha:{e.SenhaRetirada}")
 
-        except Exception as e:
-            print(f"⚠️ Erro ao atualizar {e}")
+        #except Exception as e:
+        #    print(f"⚠️ Erro ao atualizar {e}")
 
     ctx = {
         "encomendas": qs,
@@ -125,6 +112,7 @@ def encomenda_list(request):
     }
 
     return render(request, "portaria/encomenda_list.html", ctx)
+
 
 
 @login_required
