@@ -6,21 +6,22 @@ from django.db import transaction
 from .models import Encomenda
 from integrations.sf_tickets import sync_encomenda_to_salesforce
 
-@receiver(post_save, sender=Encomenda)
-def criar_ticket_sf_quando_criar_encomenda(sender, instance, created, **kwargs):
-    if not created:
-        return
 
-    def _after_commit():
-        try:
-            resultado = sync_encomenda_to_salesforce(instance)
-            if resultado:
-                ticket_id = resultado["id"]
-                senha = resultado["senha"]
-                instance.salesforce_ticket_id = ticket_id
-                instance.SenhaRetirada = senha
-                instance.save(update_fields=["salesforce_ticket_id", "SenhaRetirada"])
-        except Exception:
-            pass
+# @receiver(post_save, sender=Encomenda)
+# def criar_ticket_sf_quando_criar_encomenda(sender, instance, created, **kwargs):
+#     if not created:
+#         return
 
-    transaction.on_commit(_after_commit)
+#     def _after_commit():
+#         try:
+#             resultado = sync_encomenda_to_salesforce(instance)
+#             if resultado:
+#                 ticket_id = resultado["id"]
+#                 senha = resultado["senha"]
+#                 instance.salesforce_ticket_id = ticket_id
+#                 instance.SenhaRetirada = senha
+#                 instance.save(update_fields=["salesforce_ticket_id", "SenhaRetirada"])
+#         except Exception:
+#             pass
+
+#     transaction.on_commit(_after_commit)
