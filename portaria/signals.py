@@ -13,10 +13,13 @@ def criar_ticket_sf_quando_criar_encomenda(sender, instance, created, **kwargs):
 
     def _after_commit():
         try:
-            ticket_id = sync_encomenda_to_salesforce(instance)
-            if ticket_id:
+            resultado = sync_encomenda_to_salesforce(instance)
+            if resultado:
+                ticket_id = resultado["id"]
+                senha = resultado["senha"]
                 instance.salesforce_ticket_id = ticket_id
-                instance.save(update_fields=["salesforce_ticket_id"])
+                instance.SenhaRetirada = senha
+                instance.save(update_fields=["salesforce_ticket_id", "SenhaRetirada"])
         except Exception:
             pass
 
