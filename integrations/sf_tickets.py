@@ -69,34 +69,43 @@ def build_package_fields_from_encomenda(encomenda) -> Dict[str, str]:
     oportunidade = getattr(encomenda.destinatario, "sf_opportunity_id", "")
     return {"pacote_nome": nome, "pacote_para": para, "pacote_desc": desc, "pacote_tipo": tipo, "pacote_oportunidade": oportunidade}
 
-def sync_encomenda_to_salesforce(encomenda) -> Optional[str]:
-    print("Tentando criar t no Salesforce...")
+from typing import Optional, Dict
+
+def sync_encomenda_to_salesforce(encomenda) -> Optional[Dict[str, str]]:
     """
     Cria um reda__T__c no Salesforce a partir da Encomenda.
-    Retorna o ID do t criado (ou None em caso de falha).
+    Retorna um dicionário com {"id": <ticket_id>, "senha": <senha>} ou None em caso de falha.
     """
+    print("🔄 Tentando criar T no Salesforce...")
+
     cond = encomenda.condominio
     unidades = encomenda.unidade
-    print(cond.sf_property_id)
-    print(f"Unidade: {unidades.sf_unidade_id if unidades else 'N/A'}")
+
+    print(f"🏢 Condomínio SF ID: {cond.sf_property_id}")
+    print(f"🏠 Unidade: {unidades.sf_unidade_id if unidades else 'N/A'}")
+
     if not getattr(cond, "sf_property_id", ""):
-        # Sem mapeamento para Property no SF: não é possível criar o t
+        print("❌ Sem mapeamento para Property no SF, abortando criação do Ticket.")
         return None
 
     contact_id = None
     dest = getattr(encomenda, "destinatario", None)
-    print(f"Destinatário: {dest}")
-    print(f"SF Contact ID do destinatário: {getattr(dest, 'sf_contact_id', '') if dest else 'N/A'}")
+    print(f"👤 Destinatário: {dest}")
+    print(f"🔗 SF Contact ID: {getattr(dest, 'sf_contact_id', '') if dest else 'N/A'}")
+
     if dest and getattr(dest, "sf_contact_id", ""):
         contact_id = dest.sf_contact_id
 
     fields = build_package_fields_from_encomenda(encomenda)
-    print(f"Campos do pacote: {fields}")
+    print(f"📦 Campos do pacote: {fields}")
+
     sf = sf_connect()
-    print("Conectado ao Salesforce. {sf}")
+    print(f"✅ Conectado ao Salesforce: {sf}")
+
+    # 🔹 Cria o registro no Salesforce
     res = criar_t_salesforce(
         sf=sf,
-        property_id= unidades.sf_unidade_id,  #cond.sf_property_id,
+        property_id=unidades.sf_unidade_id,
         contact_id=contact_id,
         pacote_nome=fields["pacote_nome"],
         pacote_para=fields["pacote_para"],
@@ -104,27 +113,36 @@ def sync_encomenda_to_salesforce(encomenda) -> Optional[str]:
         pacote_tipo=fields["pacote_tipo"],
         pacote_oportunidade=fields["pacote_oportunidade"]
     )
+
+    print(f"📬 Resposta do Salesforce: {res}")
+
     if res.get("success"):
+        ticket_id = res.get("id")
+        senha_pacote = res.get("Password__c") #or res.get("senha") or ""
+
+        print(f"✅ Ticket criado: {ticket_id}")
+        print(f"🔑 Senha retornada: {senha_pacote}")
+
+        # 🔗 Se houver oportunidade, vincula arquivos
         if fields["pacote_oportunidade"]:
             opportunity_id = fields["pacote_oportunidade"]
-            ticket_id = res.get("id")
-            print(f"Vinculando t {ticket_id} à Opportunity {opportunity_id}...")
-            #print(f"Anexando arquivos da encomenda {encomenda.id} à Opportunity {opportunity_id}...")
+            print(f"📎 Vinculando T {ticket_id} à Opportunity {opportunity_id}...")
+
             base_dir = settings.MEDIA_ROOT
-            print(f"Base dir: {base_dir}")
             for i in range(1, 6):
-                print(f"Verificando arquivo {i}...")
                 arquivo = getattr(encomenda, f"arquivo_0{i}")
-                print(f"Arquivo {i}: {arquivo}")
                 if arquivo:
                     file_path = os.path.join(base_dir, arquivo.name)
-                    print(f"Caminho completo do arquivo {i}: {file_path}")
                     titulo = f"Encomenda {encomenda.id} - Arquivo {i}"
-                    print(f"Anexando arquivo {file_path} com título '{titulo}'...")
+                    print(f"📤 Anexando arquivo {file_path} com título '{titulo}'...")
                     anexar_arquivo_salesforce(file_path, ticket_id, titulo)
 
-        return res.get("id")
+        # ✅ Retorna tanto o ID quanto a senha
+        return {"id": ticket_id, "senha": senha_pacote}
+
+    print("❌ Falha ao criar o registro no Salesforce.")
     return None
+
 
 def delete_encomenda_from_salesforce(t_id: str) -> bool:
     """

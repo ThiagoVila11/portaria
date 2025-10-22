@@ -160,20 +160,50 @@ def encomenda_create(request):
 
             encomenda.save() 
             print(f"Encomenda {encomenda.id} salva com sucesso.")
+            print(f"id do salesforce_ticket_id antes da integração: {encomenda.salesforce_ticket_id}")
             # 🔑 só sincroniza se ainda não estiver integrado
-            if not encomenda.salesforce_ticket_id:
-                print("Tentando integrar com Salesforce...")
-                try:
-                    ticket_id = sync_encomenda_to_salesforce(encomenda)
-                    print(f"Resultado da integração com Salesforce: {ticket_id}")
-                    if ticket_id:
-                        encomenda.salesforce_ticket_id = ticket_id
-                        encomenda.save(update_fields=["salesforce_ticket_id"])
-                        messages.info(request, f"Ticket criado no Salesforce: {ticket_id}")
-                except Exception:
-                    messages.warning(request, "Encomenda salva, mas houve erro ao integrar com o Salesforce.")
-            else:
-                print(f"Encomenda já integrada com Salesforce: {encomenda.salesforce_ticket_id}")
+            #if not encomenda.salesforce_ticket_id:
+            print("Tentando integrar com Salesforce...")
+            try:
+                resultado = sync_encomenda_to_salesforce(encomenda)
+                print(f"Resultado da integração com Salesforce: {resultado}")
+                ticket_id = resultado["id"]
+                print("Ticket ID retornado:", ticket_id)
+                senha = resultado["senha"]
+                print("Senha retornada:", senha)
+                if ticket_id:
+                    encomenda.salesforce_ticket_id = ticket_id
+
+                    # Consulta SOQL no Salesforce
+                    sf = sf_connect()
+                    soql = f"""
+                        SELECT Id, Password__c
+                        FROM reda__Ticket__c
+                        WHERE Id = '{ticket_id}'
+                        and Password__c != null
+                    """
+                    res_senha = sf.query(soql).get("records", [])
+                    SenhaRetirada = res_senha[0].get("Password__c")
+                    encomenda.SenhaRetirada = SenhaRetirada
+                    #print(f"Consulta SOQL para {e.destinatario} (ID {e.salesforce_ticket_id}): {result}")
+                    #if res_senha:
+                    #    senharetirada = res_senha[0].get("Password__c")
+                    #    print(f"Senha retirada do Salesforce: {senharetirada}")
+                    #    campos_para_salvar = []
+                    #    encomenda.SenhaRetirada = senharetirada
+                    #    campos_para_salvar.append("SenhaRetirada")
+                    #    if campos_para_salvar:
+                    #        e.save(update_fields=campos_para_salvar)
+                    #        #print(f"✅ Atualizado {e.destinatario}: senha:{e.SenhaRetirada}")
+
+                    print(f"Salvando ticket_id {ticket_id} e senha {SenhaRetirada} na encomenda {encomenda.id}")
+                    #encomenda.save(update_fields=["salesforce_ticket_id"])
+                    encomenda.save(update_fields=["salesforce_ticket_id", "SenhaRetirada"])
+                    messages.info(request, f"Ticket criado no Salesforce: {ticket_id}")
+            except Exception:
+                messages.warning(request, "Encomenda salva, mas houve erro ao integrar com o Salesforce.")
+            #else:
+            #    messages.info(request, f"Ticket criado no Salesforce: {ticket_id} (Senha: {senha})")
 
             messages.success(request, f"Encomenda {encomenda.pk} criada com sucesso.")
             return redirect("encomenda_list")
