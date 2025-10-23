@@ -42,7 +42,7 @@ class Unidade(models.Model):
 
 class Morador(models.Model):
     nome = models.CharField(max_length=120)
-    documento = models.CharField(max_length=20, blank=True)  # CPF/RG
+    documento = models.CharField(max_length=20, blank=True, null=True)  # CPF/RG
     unidade = models.ForeignKey(Unidade, on_delete=models.PROTECT, related_name="moradores")
     ativo = models.BooleanField(default=True)
     sf_contact_id = models.CharField("Salesforce Contact Id", max_length=18, blank=True)

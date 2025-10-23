@@ -685,7 +685,6 @@ def visitantes_preaprovados_api(request):
             SELECT Id, reda__Active_Lease__c, reda__Region__c, Name
             FROM reda__Property__c
             WHERE reda__Active_Lease__c != null
-            AND reda__Region__c = 'a0sHY000000C1WqYAK'
         """
         recs = sf.query_all(soql).get("records", [])
         resultado = []
