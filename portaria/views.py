@@ -560,32 +560,30 @@ from django.shortcuts import render
 from django.utils.dateparse import parse_datetime
 from integrations.allvisitorlogs import sf_connect
 
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+
+
 @login_required
 def visitantes_preaprovados(request):
-    print('aqui')
+    print("Acessando visitantes_preaprovados")
     sf = sf_connect()
 
-    # 🧭 Pega o filtro de condomínio (vindo da URL ?condominio=)
+    # 🧭 Filtro
     condominio_raw = request.GET.get("condominio", "").strip()
     condominio = int(condominio_raw) if condominio_raw.isdigit() else None
-    print(f"🔍 Filtro recebido (raw='{condominio_raw}', convertido={condominio})")
+    sf_cursor = request.GET.get("sf_page")  # 🔹 novo: cursor Salesforce
 
-    # 🧭 Busca os condomínios permitidos
     allowed = allowed_condominios_for(request.user)
     allowed_sf_ids = list(
-        Condominio.objects.filter(id__in=allowed)
-        .values_list("sf_property_id", flat=True)
+        Condominio.objects.filter(id__in=allowed).values_list("sf_property_id", flat=True)
     )
-    print(f"✅ Condomínios permitidos (SF IDs): {allowed_sf_ids}")
 
-    # 🔹 Monta o SOQL base
+    # 🧱 Monta SOQL base
     soql = """
         SELECT Id,
                reda__Contact__r.Name,
                reda__Guest_Name__c,
-               reda__Property__c,
                reda__Property__r.Name,
-               reda__Property__r.reda__Region__c,
                reda__Guest_Phone__c,
                CreatedDate,
                reda__Permitted_Till_Datetime__c
@@ -593,7 +591,7 @@ def visitantes_preaprovados(request):
         WHERE reda__Permitted_Till_Datetime__c != null
     """
 
-    # 🔹 Aplica o filtro por condomínio (se válido)
+    # 🧭 Aplica filtro de condomínio
     if condominio:
         sf_property_id = (
             Condominio.objects.filter(id=condominio)
@@ -601,52 +599,47 @@ def visitantes_preaprovados(request):
             .first()
         )
         if sf_property_id:
-            soql += f" AND reda__Property_c = '{sf_property_id}'"
-            print(f"🔎 Aplicando filtro Salesforce: reda__Property__c = '{sf_property_id}'")
-        else:
-            print(f"⚠️ Nenhum sf_property_id encontrado para o condomínio {condominio}")
-    else:
-        print("⚠️ Nenhum condomínio selecionado no filtro")
+            soql += f" AND reda__Property__c = '{sf_property_id}'"
 
-    # 🔹 Ordenação
+    soql += "LIMIT 5"
     soql += " ORDER BY CreatedDate DESC"
-    print(f"🧾 SOQL final: {soql}")
 
-    # 🔹 Executa consulta Salesforce
-    recs = sf.query_all(soql).get("records", [])
-    print(f"📦 Registros retornados: {len(recs)}")
+    # 🧭 Pega página do Salesforce
+    if sf_cursor:
+        print(f"🔁 Buscando próxima página via cursor: {sf_cursor}")
+        result = sf.query_more(sf_cursor, True)
+    else:
+        print(f"📡 Primeira consulta Salesforce: {soql}")
+        result = sf.query(soql)
+
+    recs = result.get("records", [])
+    next_cursor = result.get("nextRecordsUrl")  # se houver próxima página
+    print(f"📦 Registros retornados: {len(recs)} | Próxima página: {bool(next_cursor)}")
 
     # 🔹 Formata datas
     for r in recs:
         r.pop("attributes", None)
         for field in ["CreatedDate", "reda__Permitted_Till_Datetime__c"]:
             val = r.get(field)
-            if isinstance(val, str):
-                if len(val) > 5 and (val.endswith("+0000") or val.endswith("-0000") or val[-5:].isdigit()):
-                    val = val[:-2] + ":" + val[-2:]
-                dt = parse_datetime(val)
-                if dt:
-                    r[field] = dt.strftime("%d/%m/%Y %H:%M")
-                else:
-                    r[field] = val
+            if val and "T" in val:
+                val = val.replace("T", " ").split(".")[0]
+                r[field] = val
             else:
                 r[field] = "—"
 
-    # 🔒 Filtra localmente se não for admin
-    if not (request.user.is_superuser or request.user.groups.filter(name="Administrador").exists()):
-        recs = [
-            r for r in recs
-            if r.get("reda__Property__r", {}).get("reda__Region__c") in allowed_sf_ids
-        ]
-        print(f"🔐 Aplicado filtro local: {len(recs)} registros após filtragem")
-
+    # 🔹 Contexto
     ctx = {
         "visitantes": recs,
+        "next_cursor": next_cursor,
+        "prev_cursor": sf_cursor,  # não real, mas útil pra controle
         "condominios": allowed,
-        "total": len(recs),
+        "total": result.get("totalSize", len(recs)),
         "condominio_pk": condominio_raw,
     }
+
     return render(request, "portaria/visitantes_preaprovados.html", ctx)
+
+
 
 from django.http import JsonResponse
 from django.utils.dateparse import parse_datetime
@@ -752,23 +745,23 @@ def visitantes_preaprovados_api(request):
         print(f"❌ Erro na sincronização: {e}")
         return JsonResponse({"erro": str(e)}, status=500)
 
-@login_required
+
 @login_required
 def visitantes_preaprovados(request):
     sf = sf_connect()
 
-    # 🧭 Pega o filtro manual (opcional)
     condominio_param = request.GET.get("condominio", "").strip()
+    sf_cursor = request.GET.get("sf_page", "").strip()
 
-    # 🔹 Busca os condomínios permitidos
     allowed = allowed_condominios_for(request.user)
     allowed_sf_ids = list(
         Condominio.objects.filter(id__in=allowed)
         .values_list("sf_property_id", flat=True)
     )
-    print(f"✅ Condomínios permitidos (Salesforce IDs): {allowed_sf_ids}")
 
-    # 🔹 Monta o SOQL base
+    print(f"✅ Condomínios permitidos (SF IDs): {allowed_sf_ids}")
+
+    # 🔹 SOQL base
     soql = """
         SELECT Id,
                reda__Contact__r.Name,
@@ -777,13 +770,12 @@ def visitantes_preaprovados(request):
                reda__Property__r.Name,
                reda__Guest_Phone__c,
                CreatedDate,
-               reda__Permitted_Till_Datetime__c,
-               reda__Opportunity__r.reda__Region__c
+               reda__Permitted_Till_Datetime__c
         FROM reda__Visitor_Log__c
         WHERE reda__Permitted_Till_Datetime__c != null
     """
 
-    # 🔹 Caso o usuário tenha selecionado um condomínio no filtro
+    # 🔹 Filtro manual
     if condominio_param:
         sf_property_id = (
             Condominio.objects.filter(id=condominio_param)
@@ -791,52 +783,54 @@ def visitantes_preaprovados(request):
             .first()
         )
         if sf_property_id:
-            soql += f" AND reda__Opportunity__r.reda__Region__c = '{sf_property_id}'"
-            print(f"🧩 Aplicando filtro manual: reda__Opportunity__r.reda__Region__c = '{sf_property_id}'")
-
-    # 🔹 Caso não tenha selecionado, filtra automaticamente pelos condomínios permitidos
+            soql += f" AND reda__Property__c = '{sf_property_id}'"
+    # 🔹 Filtro automático
     elif allowed_sf_ids:
         sf_filter = ",".join(f"'{c}'" for c in allowed_sf_ids if c)
-        #soql += f" AND reda__Opportunity__r.reda__Region__c like %({sf_filter}%)"
-        print(f"🔒 Aplicando filtro automático: reda__Property__r.reda__Region__c IN ({sf_filter})")
+        #soql += f" AND reda__Property__c IN ({sf_filter})"
 
-    # 🔹 Ordenação
-    soql += " ORDER BY CreatedDate DESC"
-    print(f"SOQL final: {soql}")
+    soql += " ORDER BY CreatedDate DESC LIMIT 5"
 
-    # 🔹 Consulta Salesforce
-    recs = sf.query_all(soql).get("records", [])
-    print(f"📦 Registros retornados: {len(recs)}")
+    # 🔹 Paginação via cursor (Salesforce)
+    if sf_cursor:
+        print(f"🔁 Próxima página: {sf_cursor}")
+        # Garante que o cursor está no formato correto
+        if sf_cursor.startswith("/services/data"):
+            cursor_path = sf_cursor
+        else:
+            cursor_path = f"/services/data/v59.0/query/{sf_cursor}"
+        result = sf.query_more(cursor_path, True)
+    else:
+        print(f"📡 Primeira consulta:\n{soql}")
+        result = sf.query(soql)
+
+    recs = result.get("records", [])
+    next_cursor = result.get("nextRecordsUrl")
+
+    print(f"📦 Registros retornados: {len(recs)} | Próxima página: {next_cursor}")
 
     # 🔹 Formata datas
     for r in recs:
         r.pop("attributes", None)
         for field in ["CreatedDate", "reda__Permitted_Till_Datetime__c"]:
             val = r.get(field)
-            if isinstance(val, str):
-                if len(val) > 5 and (val.endswith("+0000") or val.endswith("-0000") or val[-5:].isdigit()):
-                    val = val[:-2] + ":" + val[-2:]
-                dt = parse_datetime(val)
-                if dt:
-                    r[field] = dt.strftime("%d/%m/%Y %H:%M")
-                else:
-                    r[field] = val
+            if isinstance(val, str) and "T" in val:
+                val = val.replace("T", " ").split(".")[0]
+                r[field] = val
             else:
                 r[field] = "—"
-
-    # 🔹 Garante filtro local (segurança extra)
-    #recs = [
-    #    r for r in recs
-    #    if not allowed_sf_ids or r.get("reda__Opportunity__r", {}).get("reda__Region__c") in allowed_sf_ids
-    #]
 
     ctx = {
         "visitantes": recs,
         "condominios": allowed,
-        "total": len(recs),
-        "condominio_pk": condominio_param,  # mantém selecionado no filtro
+        "total": result.get("totalSize", len(recs)),
+        "condominio_pk": condominio_param,
+        "next_cursor": next_cursor,
     }
+
     return render(request, "portaria/visitantes_preaprovados.html", ctx)
+
+
 
 
 @login_required

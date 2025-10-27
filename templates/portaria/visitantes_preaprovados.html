@@ -6,49 +6,76 @@
 {% block content %}
 <div class="card" style="padding:16px">
 
-  <form method="get" style="display:flex; gap:10px; margin-bottom:12px">
+  <!-- 🔹 Filtros -->
+  <form method="get" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; align-items:end;">
     <label style="display:grid; gap:6px">
       <span>Condomínio</span>
-      <select name="condominio">
+      <select name="condominio" style="min-width:220px;">
         <option value="">Todos</option>
         {% for c in condominios %}
-          <option value="{{ c.id }}" {% if request.GET.condominio == c.id|stringformat:"s" %}selected{% endif %}>
+          <option value="{{ c.id }}" {% if condominio_pk == c.id|stringformat:"s" %}selected{% endif %}>
             {{ c.nome }}
           </option>
         {% endfor %}
       </select>
     </label>
-    <div style="align-self:end">
+
+    <div>
       <button class="btn" type="submit">Filtrar</button>
       <a class="btn-outline" href="{% url 'visitantes_preaprovados' %}">Limpar</a>
     </div>
   </form>
 
-
   <p class="muted">Total: <strong>{{ total }}</strong></p>
-  <table border="1" cellpadding="6" width="100%">
-    <tr>
-      <th>Nome</th>
-      <th>Fone</th>
-      <th>Unidade</th>
-      <th>Morador</th>
-      <th>Data Criação</th>
-      <th>Permitido até</th>
 
-    </tr>
-    {% for v in visitantes %}
-    <tr>
-      <td>{{ v.reda__Guest_Name__c }}</td>
-      <td>{{ v.reda__Guest_Phone__c }}</td>
-      <td>{{ v.reda__Property__r.Name }}</td>
-      <td>{{ v.reda__Contact__r.Name }}</td>
-      <td>{{ v.CreatedDate|local_sp }}</td>
-      <td>{{ v.reda__Permitted_Till_Datetime__c|local_sp}}</td>
-      
-    </tr>
-    {% empty %}
-    <tr><td colspan="6">Nenhum visitante pré-aprovado encontrado.</td></tr>
-    {% endfor %}
+  <!-- 🔹 Tabela -->
+  <table border="1" cellpadding="6" width="100%" style="font-size:13px; border-collapse:collapse;">
+    <thead style="background:#f8f9fa;">
+      <tr>
+        <th>Nome</th>
+        <th>Fone</th>
+        <th>Unidade</th>
+        <th>Morador</th>
+        <th>Data Criação</th>
+        <th>Permitido até</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in visitantes %}
+      <tr>
+        <td>{{ v.reda__Guest_Name__c }}</td>
+        <td>{{ v.reda__Guest_Phone__c }}</td>
+        <td>{{ v.reda__Property__r.Name }}</td>
+        <td>{{ v.reda__Contact__r.Name }}</td>
+        <td>{{ v.CreatedDate }}</td>
+        <td>{{ v.reda__Permitted_Till_Datetime__c }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;">Nenhum visitante encontrado.</td></tr>
+      {% endfor %}
+    </tbody>
   </table>
+
+  <!-- 🔹 Paginação -->
+  <div style="margin-top:20px; text-align:center;">
+    <div style="display:inline-flex; gap:8px;">
+      <span class="btn-outline disabled">Anterior</span>
+
+      {% if next_cursor %}
+        <a class="btn"
+          href="?sf_page={{ next_cursor|urlencode }}{% if condominio_pk %}&condominio={{ condominio_pk }}{% endif %}">
+          Próxima
+        </a>
+      {% else %}
+        <span class="btn-outline disabled">Próxima</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <p style="text-align:center; margin-top:8px;" class="muted">
+    Mostrando até 5 visitantes por página
+  </p>
+
+
 </div>
 {% endblock %}

@@ -155,6 +155,35 @@
     </div>
   </div>
   {% endif %}
+
+  <!-- 🔹 Popup de confirmação de entrega -->
+  <div id="senha-popup" style="
+    display:none;
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    background:rgba(0,0,0,0.6);
+    align-items:center;
+    justify-content:center;
+    z-index:9999;">
+    <div style="
+      background:white;
+      padding:20px;
+      border-radius:8px;
+      width:320px;
+      text-align:center;">
+      <h3>Confirme a Retirada</h3>
+      <input type="password" id="senha-input" class="form-control"
+            placeholder="Digite a senha" style="margin:10px 0; width:100%;">
+      <input type="text" id="retirado-input" class="form-control"
+            placeholder="Retirado por" style="margin:10px 0; width:100%;">
+      <div style="display:flex; justify-content:space-between;">
+        <button id="senha-cancelar" class="btn-outline">Cancelar</button>
+        <button id="senha-confirmar" class="btn">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+
 </div>
 
 <!-- 🔹 Script do popup -->
