@@ -5,11 +5,13 @@
 
 {% block content %}
 <div class="card" style="padding:16px">
-  <form method="get" style="display:grid; gap:10px; margin-bottom:12px">
+  <form method="get" id="filtro-encomendas" style="display:grid; gap:10px; margin-bottom:12px">
     <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:end">
+
+      <!-- 🔹 Condomínio -->
       <label style="display:grid; gap:6px">
         <span>Condomínio</span>
-        <select name="condominio" style="min-width:220px">
+        <select name="condominio" id="condominio-select" style="min-width:220px">
           <option value="">Todos</option>
           {% for c in condominios %}
             <option value="{{ c.id }}" {% if q.condominio|default:'' == c.id|stringformat:"s" %}selected{% endif %}>
@@ -19,6 +21,20 @@
         </select>
       </label>
 
+      <!-- 🔹 Unidade (dinâmica) -->
+      <label style="display:grid; gap:6px">
+        <span>Unidade</span>
+        <select name="unidade" id="unidade-select" style="min-width:160px">
+          <option value="">Todas</option>
+          {% for u in unidades %}
+            <option value="{{ u.id }}" {% if q.unidade|default:'' == u.id|stringformat:"s" %}selected{% endif %}>
+              {{ u }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <!-- 🔹 Datas -->
       <label style="display:grid; gap:6px">
         <span>Data inicial</span>
         <input type="date" name="dt_ini" value="{{ q.dt_ini|default:'' }}">
@@ -29,11 +45,13 @@
         <input type="date" name="dt_fim" value="{{ q.dt_fim|default:'' }}">
       </label>
 
+      <!-- 🔹 Destinatário -->
       <label style="display:grid; gap:6px">
         <span>Destinatário</span>
         <input type="text" name="destinatario" value="{{ q.destinatario|default:'' }}" placeholder="Nome do destinatário">
       </label>
 
+      <!-- 🔹 Status -->
       <label style="display:grid; gap:6px">
         <span>Status</span>
         <select name="status" style="min-width:160px">
@@ -44,6 +62,7 @@
         </select>
       </label>
 
+      <!-- 🔹 Botões -->
       <div style="display:flex; gap:8px">
         <button class="btn" type="submit">Filtrar</button>
         <a class="btn-outline" href="{% url 'encomenda_list' %}">Limpar</a>
@@ -60,7 +79,8 @@
     <a class="btn-outline" style="margin-left:8px" href="{% url 'dashboard' %}">Voltar</a>
   </p>
 
-    <table border="1" cellpadding="6" width="100%" style="font-size: 13px; border-collapse: collapse;">
+  <!-- 🔹 Tabela -->
+  <table border="1" cellpadding="6" width="100%" style="font-size: 13px; border-collapse: collapse;">
     <thead style="background: #f8f9fa;">
       <tr>
         <th>ID</th>
@@ -96,7 +116,6 @@
               <button type="button" class="btn-outline btn-entregar" style="font-size:12px;">Entregar</button>
             </form>
           {% endif %}
-
           {% if e.status != "ENTREGUE" %}
             <form action="{% url 'encomenda_delete' e.id %}" method="post" style="display:inline;">
               {% csrf_token %}
@@ -114,54 +133,31 @@
     </tbody>
   </table>
 
+  <!-- 🔹 Paginação -->
   {% if encomendas.has_other_pages %}
-    <div style="margin-top:20px; text-align:center;">
-      <div style="display:inline-flex; gap:4px;">
-        {% if encomendas.has_previous %}
-          <a class="btn-outline" href="?page={{ encomendas.previous_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.destinatario %}&destinatario={{ q.destinatario }}{% endif %}{% if q.status %}&status={{ q.status }}{% endif %}{% if q.dt_ini %}&dt_ini={{ q.dt_ini }}{% endif %}{% if q.dt_fim %}&dt_fim={{ q.dt_fim }}{% endif %}">Anterior</a>
-        {% else %}
-          <span class="btn-outline disabled">Anterior</span>
-        {% endif %}
+  <div style="margin-top:20px; text-align:center;">
+    <div style="display:inline-flex; gap:4px;">
+      {% if encomendas.has_previous %}
+        <a class="btn-outline" href="?page={{ encomendas.previous_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.unidade %}&unidade={{ q.unidade }}{% endif %}{% if q.destinatario %}&destinatario={{ q.destinatario }}{% endif %}{% if q.status %}&status={{ q.status }}{% endif %}{% if q.dt_ini %}&dt_ini={{ q.dt_ini }}{% endif %}{% if q.dt_fim %}&dt_fim={{ q.dt_fim }}{% endif %}">Anterior</a>
+      {% else %}
+        <span class="btn-outline disabled">Anterior</span>
+      {% endif %}
 
-        <span class="btn muted" style="pointer-events:none;">
-          Página {{ encomendas.number }} de {{ encomendas.paginator.num_pages }}
-        </span>
+      <span class="btn muted" style="pointer-events:none;">
+        Página {{ encomendas.number }} de {{ encomendas.paginator.num_pages }}
+      </span>
 
-        {% if encomendas.has_next %}
-          <a class="btn-outline" href="?page={{ encomendas.next_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.destinatario %}&destinatario={{ q.destinatario }}{% endif %}{% if q.status %}&status={{ q.status }}{% endif %}{% if q.dt_ini %}&dt_ini={{ q.dt_ini }}{% endif %}{% if q.dt_fim %}&dt_fim={{ q.dt_fim }}{% endif %}">Próxima</a>
-        {% else %}
-          <span class="btn-outline disabled">Próxima</span>
-        {% endif %}
-      </div>
+      {% if encomendas.has_next %}
+        <a class="btn-outline" href="?page={{ encomendas.next_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.unidade %}&unidade={{ q.unidade }}{% endif %}{% if q.destinatario %}&destinatario={{ q.destinatario }}{% endif %}{% if q.status %}&status={{ q.status }}{% endif %}{% if q.dt_ini %}&dt_ini={{ q.dt_ini }}{% endif %}{% if q.dt_fim %}&dt_fim={{ q.dt_fim }}{% endif %}">Próxima</a>
+      {% else %}
+        <span class="btn-outline disabled">Próxima</span>
+      {% endif %}
     </div>
+  </div>
   {% endif %}
 </div>
 
-<!-- 🔹 Popup de confirmação -->
-<div id="senha-popup" style="
-  display:none;
-  position:fixed;
-  top:0; left:0; right:0; bottom:0;
-  background:rgba(0,0,0,0.6);
-  align-items:center;
-  justify-content:center;
-  z-index:9999;">
-  <div style="
-    background:white;
-    padding:20px;
-    border-radius:8px;
-    width:320px;
-    text-align:center;">
-    <h3>Confirme a Retirada</h3>
-    <input type="password" id="senha-input" class="form-control" placeholder="Digite a senha" style="margin:10px 0; width:100%;">
-    <input type="text" id="retirado-input" class="form-control" placeholder="Retirado por" style="margin:10px 0; width:100%;">
-    <div style="display:flex; justify-content:space-between;">
-      <button id="senha-cancelar" class="btn-outline">Cancelar</button>
-      <button id="senha-confirmar" class="btn">Confirmar</button>
-    </div>
-  </div>
-</div>
-
+<!-- 🔹 Script do popup -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const popup = document.getElementById("senha-popup");
@@ -172,14 +168,11 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentForm = null;
   let senhaCorreta = "";
 
-  // Ao clicar no botão Entregar
+  // Popup entrega
   document.querySelectorAll(".btn-entregar").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const form = e.target.closest(".entrega-form");
       senhaCorreta = form.querySelector("input[name='senha_correta']").value || "";
-      console.log("Senha esperada:", senhaCorreta);
-
-      // Sempre abre o popup, mesmo sem senha
       currentForm = form;
       senhaInput.value = "";
       retiradoInput.value = "";
@@ -188,47 +181,62 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Cancelar popup
   btnCancelar.addEventListener("click", () => {
     popup.style.display = "none";
     currentForm = null;
   });
 
-  // Confirmar senha
   btnConfirmar.addEventListener("click", () => {
     if (!currentForm) return;
-
     const senhaDigitada = senhaInput.value.trim();
     const retiradoPor = retiradoInput.value.trim();
-
     if (!retiradoPor) {
       alert("Por favor, informe quem retirou a encomenda.");
       retiradoInput.focus();
       return;
     }
-
-    // Se existe senha no registro → valida; senão, ignora
     if (senhaCorreta && senhaDigitada !== senhaCorreta.trim()) {
       alert("Senha incorreta. Tente novamente.");
       senhaInput.value = "";
       senhaInput.focus();
       return;
     }
-
-    // OK → define o campo hidden e envia o form
     currentForm.querySelector("input[name='retirado_por']").value = retiradoPor;
     popup.style.display = "none";
     currentForm.submit();
   });
-
-  // Pressionar Enter
-  senhaInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") btnConfirmar.click();
-  });
-  retiradoInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") btnConfirmar.click();
-  });
 });
 </script>
 
+<!-- 🔹 Script dinâmico para Unidades -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const condSelect = document.getElementById("condominio-select");
+  const unidadeSelect = document.getElementById("unidade-select");
+
+  async function carregarUnidades(condominioId) {
+    if (!condominioId) {
+      unidadeSelect.innerHTML = '<option value="">Todas</option>';
+      return;
+    }
+    try {
+      const resp = await fetch(`/ajax/unidades/${condominioId}/`, { credentials: "same-origin" });
+      const html = await resp.text();
+      unidadeSelect.innerHTML = '<option value="">Todas</option>' + html;
+    } catch (error) {
+      console.error("Erro ao carregar unidades:", error);
+    }
+  }
+
+  condSelect.addEventListener("change", () => {
+    const condId = condSelect.value;
+    carregarUnidades(condId);
+  });
+
+  // Carrega unidades automaticamente se já houver um condomínio selecionado
+  if (condSelect.value) {
+    carregarUnidades(condSelect.value);
+  }
+});
+</script>
 {% endblock %}

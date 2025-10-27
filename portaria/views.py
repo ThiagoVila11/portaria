@@ -43,6 +43,7 @@ def encomenda_list(request):
     qs = Encomenda.objects.select_related("unidade", "condominio").filter(condominio__in=allowed)
 
     condominio = request.GET.get("condominio")
+    unidade = request.GET.get("unidade")
     dt_ini = request.GET.get("dt_ini")
     dt_fim = request.GET.get("dt_fim")
     destinatario = request.GET.get("destinatario")
@@ -57,6 +58,8 @@ def encomenda_list(request):
     # 🔹 Filtros
     if condominio:
         qs = qs.filter(condominio_id=condominio)
+    if unidade:
+        qs = qs.filter(unidade_id=unidade)
     if dt_ini:
         qs = qs.filter(data_recebimento__date__gte=dt_ini)
     if dt_fim:
@@ -74,31 +77,6 @@ def encomenda_list(request):
         if not e.salesforce_ticket_id:
             continue  # só atualiza se tiver o ID do Visitor Log salvo
 
-        #try:
-            #if not e.SenhaRetirada:
-                # Consulta SOQL no Salesforce
-                #soql = f"""
-                #    SELECT Id, Password__c
-                #    FROM reda__Ticket__c
-                #    WHERE Id = '{e.salesforce_ticket_id}'
-                #    and Password__c != null
-                #"""
-                #result = sf.query(soql).get("records", [])
-                #print(f"Consulta SOQL para {e.destinatario} (ID {e.salesforce_ticket_id}): {result}")
-
-                #if result:
-                #    senharetirada = result[0].get("Password__c")
-                    #print(f"Senha retirada do Salesforce: {senharetirada}")
-                #    campos_para_salvar = []
-                #    e.SenhaRetirada = senharetirada
-                #    campos_para_salvar.append("SenhaRetirada")
-                #    if campos_para_salvar:
-                #        e.save(update_fields=campos_para_salvar)
-                        #print(f"✅ Atualizado {e.destinatario}: senha:{e.SenhaRetirada}")
-
-        #except Exception as e:
-        #    print(f"⚠️ Erro ao atualizar {e}")
-
     # 🔹 Paginação (20 por página)
     paginator = Paginator(qs, 20)
     page = request.GET.get("page")
@@ -109,12 +87,16 @@ def encomenda_list(request):
     except EmptyPage:
         encomendas = paginator.page(paginator.num_pages)
 
+    unidades = Unidade.objects.filter(bloco__condominio__in=allowed).order_by("numero")
+
     ctx = {
         "encomendas": encomendas,
         "condominios": allowed,
+        "unidades": unidades,
         "status_choices": Encomenda._meta.get_field("status").choices,  # compatível com qualquer estrutura
         "q": {
             "condominio": condominio or "",
+            "unidade": unidade or "",
             "dt_ini": dt_ini or "",
             "dt_fim": dt_fim or "",
             "destinatario": destinatario or "",
@@ -1238,3 +1220,16 @@ def anexar_arquivo_salesforce(file_path, opportunity_id, titulo="Anexo"):
     }
     sf.ContentDocumentLink.create(link_data)
     print(f"🔗 Arquivo {filename} vinculado à Opportunity {opportunity_id}")
+
+
+@login_required
+def ajax_unidades(request, condominio_id):
+    """
+    Retorna as <option> de unidades pertencentes ao condomínio informado.
+    Usado para popular o filtro dinâmico via AJAX.
+    """
+    unidades = Unidade.objects.filter(bloco__condominio_id=condominio_id).order_by("numero")
+
+    html = "".join([f'<option value="{u.id}">{u}</option>' for u in unidades])
+
+    return HttpResponse(html)

@@ -7,15 +7,30 @@
   <div class="card" style="padding:16px">
 
     <!-- 🔹 Filtros -->
-    <form method="get" style="display:grid; gap:10px; margin-bottom:12px">
+    <form method="get" id="filtro-acessos" style="display:grid; gap:10px; margin-bottom:12px">
       <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:end">
+        
+        <!-- 🔹 Condomínio -->
         <label style="display:grid; gap:6px">
           <span>Condomínio</span>
-          <select name="condominio" style="min-width:220px">
+          <select name="condominio" id="condominio-select" style="min-width:220px">
             <option value="">Todos</option>
             {% for c in condominios %}
               <option value="{{ c.id }}" {% if q.condominio|default:'' == c.id|stringformat:'s' %}selected{% endif %}>
                 {{ c.nome }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <!-- 🔹 Unidade (dinâmica) -->
+        <label style="display:grid; gap:6px">
+          <span>Unidade</span>
+          <select name="unidade" id="unidade-select" style="min-width:160px">
+            <option value="">Todas</option>
+            {% for u in unidades %}
+              <option value="{{ u.id }}" {% if q.unidade|default:'' == u.id|stringformat:'s' %}selected{% endif %}>
+                {{ u }}
               </option>
             {% endfor %}
           </select>
@@ -94,11 +109,12 @@
         {% endfor %}
       </tbody>
     </table>
+
     {% if eventos.has_other_pages %}
       <div style="margin-top:20px; text-align:center;">
         <div style="display:inline-flex; gap:4px;">
           {% if eventos.has_previous %}
-            <a class="btn-outline" href="?page={{ eventos.previous_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.nome %}&nome={{ q.nome }}{% endif %}{% if q.dt_ini %}&dt_ini={{ q.dt_ini }}{% endif %}{% if q.dt_fim %}&dt_fim={{ q.dt_fim }}{% endif %}">Anterior</a>
+            <a class="btn-outline" href="?page={{ eventos.previous_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.unidade %}&unidade={{ q.unidade }}{% endif %}{% if q.nome %}&nome={{ q.nome }}{% endif %}{% if q.dt_ini %}&dt_ini={{ q.dt_ini }}{% endif %}{% if q.dt_fim %}&dt_fim={{ q.dt_fim }}{% endif %}">Anterior</a>
           {% else %}
             <span class="btn-outline disabled">Anterior</span>
           {% endif %}
@@ -108,13 +124,44 @@
           </span>
 
           {% if eventos.has_next %}
-            <a class="btn-outline" href="?page={{ eventos.next_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.nome %}&nome={{ q.nome }}{% endif %}{% if q.dt_ini %}&dt_ini={{ q.dt_ini }}{% endif %}{% if q.dt_fim %}&dt_fim={{ q.dt_fim }}{% endif %}">Próxima</a>
+            <a class="btn-outline" href="?page={{ eventos.next_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.unidade %}&unidade={{ q.unidade }}{% endif %}{% if q.nome %}&nome={{ q.nome }}{% endif %}{% if q.dt_ini %}&dt_ini={{ q.dt_ini }}{% endif %}{% if q.dt_fim %}&dt_fim={{ q.dt_fim }}{% endif %}">Próxima</a>
           {% else %}
             <span class="btn-outline disabled">Próxima</span>
           {% endif %}
         </div>
       </div>
     {% endif %}
-
   </div>
+
+  <!-- 🔹 Script dinâmico para carregar unidades -->
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const condSelect = document.getElementById("condominio-select");
+    const unidadeSelect = document.getElementById("unidade-select");
+
+    async function carregarUnidades(condominioId) {
+      if (!condominioId) {
+        unidadeSelect.innerHTML = '<option value="">Todas</option>';
+        return;
+      }
+      try {
+        const resp = await fetch(`/ajax/unidades/${condominioId}/`, { credentials: "same-origin" });
+        const html = await resp.text();
+        unidadeSelect.innerHTML = '<option value="">Todas</option>' + html;
+      } catch (error) {
+        console.error("Erro ao carregar unidades:", error);
+      }
+    }
+
+    condSelect.addEventListener("change", () => {
+      const condId = condSelect.value;
+      carregarUnidades(condId);
+    });
+
+    // Se já houver um condomínio selecionado, carrega as unidades correspondentes
+    if (condSelect.value) {
+      carregarUnidades(condSelect.value);
+    }
+  });
+  </script>
 {% endblock %}

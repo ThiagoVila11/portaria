@@ -36,4 +36,6 @@ path("api/get_all_fields/", get_all_fields, name="get_all_fields"),
 path("api/veiculos_unidades/", veiculos_unidades, name="veiculos_unidades"),
 path("api/reservas_unidades/", reservas_unidades, name="reservas_unidades"),
 path("api/morador_unidades/", morador_unidades, name="morador_unidades"),
+
+path("ajax/unidades_novo/<int:condominio_id>/", views.ajax_unidades, name="ajax_unidades"),
 ]
