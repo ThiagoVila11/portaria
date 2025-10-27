@@ -684,8 +684,8 @@ def visitantes_preaprovados_api(request):
         soql = """
             SELECT Id, reda__Active_Lease__c, reda__Region__c, Name
             FROM reda__Property__c
-            WHERE reda__Active_Lease__c != null
         """
+        #WHERE reda__Active_Lease__c != null
         recs = sf.query_all(soql).get("records", [])
         resultado = []
 
@@ -717,40 +717,41 @@ def visitantes_preaprovados_api(request):
                     sf_unidade_id=id_propriedade,
                 )
                 print(f"✅ Unidade criada: {unidade}")
-
-                nsoql = f"""
-                    SELECT Id, Name
-                    FROM Opportunity
-                    WHERE Id = '{lease_id}'
-                """
-                oportunidade = sf.query_all(nsoql).get("records", [])
-
-                csoql = f"""
-                    SELECT Id, ContactId
-                    FROM OpportunityContactRole
-                    WHERE OpportunityId = '{lease_id}'
-                """
-                contatos = sf.query_all(csoql).get("records", [])
-
-                for contato in contatos:
-                    contact_id = contato.get("ContactId", "")
-                    ctoql = f"""
-                        SELECT Id, Name, CCpfTxt__c
-                        FROM Contact
-                        WHERE Id = '{contact_id}'
+                # Sincroniza moradores vinculados à lease
+                if lease_id:            
+                    nsoql = f"""
+                        SELECT Id, Name
+                        FROM Opportunity
+                        WHERE Id = '{lease_id}'
                     """
-                    contato_detalhes = sf.query_all(ctoql).get("records", [])
+                    oportunidade = sf.query_all(nsoql).get("records", [])
 
-                    for detalhe in contato_detalhes:
-                        nome = detalhe.get("Name", "")
-                        morador = Morador.objects.create(
-                            nome=nome,
-                            documento=detalhe.get("CCpfTxt__c", ""),
-                            unidade=unidade,
-                            sf_contact_id=contact_id,
-                            sf_opportunity_id=lease_id,
-                        )
-                        print(f"👤 Morador criado: {morador}")
+                    csoql = f"""
+                        SELECT Id, ContactId
+                        FROM OpportunityContactRole
+                        WHERE OpportunityId = '{lease_id}'
+                    """
+                    contatos = sf.query_all(csoql).get("records", [])
+
+                    for contato in contatos:
+                        contact_id = contato.get("ContactId", "")
+                        ctoql = f"""
+                            SELECT Id, Name, CCpfTxt__c
+                            FROM Contact
+                            WHERE Id = '{contact_id}'
+                        """
+                        contato_detalhes = sf.query_all(ctoql).get("records", [])
+
+                        for detalhe in contato_detalhes:
+                            nome = detalhe.get("Name", "")
+                            morador = Morador.objects.create(
+                                nome=nome,
+                                documento=detalhe.get("CCpfTxt__c", ""),
+                                unidade=unidade,
+                                sf_contact_id=contact_id,
+                                sf_opportunity_id=lease_id,
+                            )
+                            print(f"👤 Morador criado: {morador}")
 
             resultado.append({
                 "propriedade": prop_nome,
