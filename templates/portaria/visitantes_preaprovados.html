@@ -56,25 +56,28 @@
     </tbody>
   </table>
 
-  <!-- 🔹 Paginação -->
+  {% if visitantes.has_other_pages %}
   <div style="margin-top:20px; text-align:center;">
-    <div style="display:inline-flex; gap:8px;">
-      <span class="btn-outline disabled">Anterior</span>
+    <div style="display:inline-flex; gap:6px;">
+      {% if visitantes.has_previous %}
+        <a class="btn-outline" href="?page={{ visitantes.previous_page_number }}{% if condominio_pk %}&condominio={{ condominio_pk }}{% endif %}">Anterior</a>
+      {% else %}
+        <span class="btn-outline disabled">Anterior</span>
+      {% endif %}
 
-      {% if next_cursor %}
-        <a class="btn"
-          href="?sf_page={{ next_cursor|urlencode }}{% if condominio_pk %}&condominio={{ condominio_pk }}{% endif %}">
-          Próxima
-        </a>
+      <span class="btn muted" style="pointer-events:none;">
+        Página {{ visitantes.number }} de {{ visitantes.paginator.num_pages }}
+      </span>
+
+      {% if visitantes.has_next %}
+        <a class="btn-outline" href="?page={{ visitantes.next_page_number }}{% if condominio_pk %}&condominio={{ condominio_pk }}{% endif %}">Próxima</a>
       {% else %}
         <span class="btn-outline disabled">Próxima</span>
       {% endif %}
     </div>
   </div>
+  {% endif %}
 
-  <p style="text-align:center; margin-top:8px;" class="muted">
-    Mostrando até 5 visitantes por página
-  </p>
 
 
 </div>

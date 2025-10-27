@@ -601,7 +601,7 @@ def visitantes_preaprovados(request):
         if sf_property_id:
             soql += f" AND reda__Property__c = '{sf_property_id}'"
 
-    soql += "LIMIT 5"
+    soql += "LIMIT 500"
     soql += " ORDER BY CreatedDate DESC"
 
     # 🧭 Pega página do Salesforce
@@ -746,13 +746,15 @@ def visitantes_preaprovados_api(request):
         return JsonResponse({"erro": str(e)}, status=500)
 
 
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
 @login_required
 def visitantes_preaprovados(request):
     sf = sf_connect()
 
     condominio_param = request.GET.get("condominio", "").strip()
-    sf_cursor = request.GET.get("sf_page", "").strip()
 
+    # 🔹 Busca os condomínios permitidos ao usuário
     allowed = allowed_condominios_for(request.user)
     allowed_sf_ids = list(
         Condominio.objects.filter(id__in=allowed)
@@ -761,7 +763,7 @@ def visitantes_preaprovados(request):
 
     print(f"✅ Condomínios permitidos (SF IDs): {allowed_sf_ids}")
 
-    # 🔹 SOQL base
+    # 🔹 Monta o SOQL base
     soql = """
         SELECT Id,
                reda__Contact__r.Name,
@@ -775,7 +777,7 @@ def visitantes_preaprovados(request):
         WHERE reda__Permitted_Till_Datetime__c != null
     """
 
-    # 🔹 Filtro manual
+    # 🔹 Filtro manual (condomínio selecionado)
     if condominio_param:
         sf_property_id = (
             Condominio.objects.filter(id=condominio_param)
@@ -784,30 +786,21 @@ def visitantes_preaprovados(request):
         )
         if sf_property_id:
             soql += f" AND reda__Property__c = '{sf_property_id}'"
-    # 🔹 Filtro automático
+            print(f"🧩 Filtro manual aplicado: reda__Property__c = '{sf_property_id}'")
+    # 🔹 Filtro automático (usuário com condomínios permitidos)
     elif allowed_sf_ids:
         sf_filter = ",".join(f"'{c}'" for c in allowed_sf_ids if c)
         #soql += f" AND reda__Property__c IN ({sf_filter})"
+        print(f"🔒 Filtro automático aplicado: reda__Property__c IN ({sf_filter})")
 
-    soql += " ORDER BY CreatedDate DESC LIMIT 5"
+    # 🔹 Ordenação
+    soql += " ORDER BY CreatedDate DESC"
 
-    # 🔹 Paginação via cursor (Salesforce)
-    if sf_cursor:
-        print(f"🔁 Próxima página: {sf_cursor}")
-        # Garante que o cursor está no formato correto
-        if sf_cursor.startswith("/services/data"):
-            cursor_path = sf_cursor
-        else:
-            cursor_path = f"/services/data/v59.0/query/{sf_cursor}"
-        result = sf.query_more(cursor_path, True)
-    else:
-        print(f"📡 Primeira consulta:\n{soql}")
-        result = sf.query(soql)
+    print(f"📡 Executando consulta Salesforce:\n{soql}")
+    result = sf.query_all(soql)
 
     recs = result.get("records", [])
-    next_cursor = result.get("nextRecordsUrl")
-
-    print(f"📦 Registros retornados: {len(recs)} | Próxima página: {next_cursor}")
+    print(f"📦 Registros retornados: {len(recs)}")
 
     # 🔹 Formata datas
     for r in recs:
@@ -820,17 +813,25 @@ def visitantes_preaprovados(request):
             else:
                 r[field] = "—"
 
+    # 🔹 Paginação local — 5 registros por página
+    paginator = Paginator(recs, 20)
+    page_number = request.GET.get("page")
+
+    try:
+        visitantes = paginator.page(page_number)
+    except PageNotAnInteger:
+        visitantes = paginator.page(1)
+    except EmptyPage:
+        visitantes = paginator.page(paginator.num_pages)
+
     ctx = {
-        "visitantes": recs,
+        "visitantes": visitantes,
         "condominios": allowed,
-        "total": result.get("totalSize", len(recs)),
+        "total": len(recs),
         "condominio_pk": condominio_param,
-        "next_cursor": next_cursor,
     }
 
     return render(request, "portaria/visitantes_preaprovados.html", ctx)
-
-
 
 
 @login_required
