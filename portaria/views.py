@@ -1015,8 +1015,18 @@ def morador_unidades(request):
         for m in qs
     ]
 
+    # 🔹 Paginação (20 por página)
+    paginator = Paginator(moradores, 20)
+    page = request.GET.get("page")
+    try:
+        moradores_lista = paginator.page(page)
+    except PageNotAnInteger:
+        moradores_lista = paginator.page(1)
+    except EmptyPage:
+        moradores_lista = paginator.page(paginator.num_pages)
+
     ctx = {
-        "moradores": moradores,
+        "moradores": moradores_lista,
         "condominios": allowed,
         "total": len(moradores),
         "morador": morador_nome,

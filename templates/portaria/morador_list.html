@@ -40,6 +40,7 @@
     Resultados: <strong>{{ total }}</strong>
   </p>
 
+  <!-- 🔹 Tabela de moradores -->
   <table border="1" cellpadding="6" width="100%">
     <thead>
       <tr>
@@ -50,7 +51,7 @@
     <tbody>
       {% for v in moradores %}
       <tr>
-        <td>{{ v.Apto}}</td>
+        <td>{{ v.Apto }}</td>
         <td>{{ v.Nome }}</td>
       </tr>
       {% empty %}
@@ -58,5 +59,28 @@
       {% endfor %}
     </tbody>
   </table>
+
+  <!-- 🔹 Paginação -->
+  {% if moradores.has_other_pages %}
+  <div style="margin-top:20px; text-align:center;">
+    <div style="display:inline-flex; gap:6px;">
+      {% if moradores.has_previous %}
+        <a class="btn-outline" href="?page={{ moradores.previous_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.nome %}&morador={{ q.nome }}{% endif %}{% if q.apartamento %}&apto={{ q.apartamento }}{% endif %}">Anterior</a>
+      {% else %}
+        <span class="btn-outline disabled">Anterior</span>
+      {% endif %}
+
+      <span class="btn muted" style="pointer-events:none;">
+        Página {{ moradores.number }} de {{ moradores.paginator.num_pages }}
+      </span>
+
+      {% if moradores.has_next %}
+        <a class="btn-outline" href="?page={{ moradores.next_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.nome %}&morador={{ q.nome }}{% endif %}{% if q.apartamento %}&apto={{ q.apartamento }}{% endif %}">Próxima</a>
+      {% else %}
+        <span class="btn-outline disabled">Próxima</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
