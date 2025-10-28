@@ -516,17 +516,26 @@ def acesso_edit(request, pk):
     form = EventoAcessoForm(instance=evento, user=request.user)
     return render(request, "portaria/acesso_form.html", {"form": form, "obj": evento})
 
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from .models import Unidade
+
 @login_required
 def ajax_unidades_por_condominio(request, condominio_id: int):
-    unidades = (Unidade.objects
-                .filter(bloco__condominio_id=condominio_id)
-                .select_related("bloco")
-                .order_by("bloco__nome", "numero"))
+    unidades = (
+        Unidade.objects
+        .filter(bloco__condominio_id=condominio_id)
+        .filter(numero__iregex=r"[0-9]{4}$")  # 🔍 Apenas se termina com 4 dígitos numéricos
+        .select_related("bloco")
+        .order_by("bloco__nome", "numero")
+    )
 
     options = ['<option value="">—</option>']
     for u in unidades:
         options.append(f'<option value="{u.id}">{u}</option>')
+
     return HttpResponse("".join(options), content_type="text/html")
+
 
 
 @login_required
@@ -753,6 +762,9 @@ def visitantes_preaprovados(request):
     sf = sf_connect()
 
     condominio_param = request.GET.get("condominio", "").strip()
+    unidade_filtro = request.GET.get("unidade", "").strip()
+    print(f"🔍 Filtros recebidos - Condomínio: '{condominio_param}', Unidade: '{unidade_filtro}'")
+
 
     # 🔹 Busca os condomínios permitidos ao usuário
     allowed = allowed_condominios_for(request.user)
@@ -793,6 +805,12 @@ def visitantes_preaprovados(request):
         #soql += f" AND reda__Property__c IN ({sf_filter})"
         print(f"🔒 Filtro automático aplicado: reda__Property__c IN ({sf_filter})")
 
+    if unidade_filtro:    
+        unidade_desc = Unidade.objects.filter(id=unidade_filtro).first()
+        unidade_desc = 'VMD-0502'
+        print(f"🔍 Unidade filtro descrição: '{unidade_desc}'")
+        soql += f" AND reda__Property__r.Name = '{unidade_desc}'"
+
     # 🔹 Ordenação
     soql += " ORDER BY CreatedDate DESC"
 
@@ -805,6 +823,7 @@ def visitantes_preaprovados(request):
     # 🔹 Formata datas
     for r in recs:
         r.pop("attributes", None)
+        print(f"Nome: {r.get('reda__Property__r.Name')}")
         for field in ["CreatedDate", "reda__Permitted_Till_Datetime__c"]:
             val = r.get(field)
             if isinstance(val, str) and "T" in val:
@@ -1155,7 +1174,7 @@ def parse_salesforce_datetime_utc(dt_str):
 def get_all_fields(request):
     """Função utilitária para pegar todos os campos de um objeto Salesforce"""
     sf = sf_connect()
-    object_name = "OpportunityContactRole"
+    object_name = "reda__Property__c"
     limit = 200
     metadata = sf.restful(f"sobjects/{object_name}/describe")
     fields = [f["name"] for f in metadata["fields"]]

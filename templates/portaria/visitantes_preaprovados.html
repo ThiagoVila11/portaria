@@ -7,14 +7,29 @@
 <div class="card" style="padding:16px">
 
   <!-- 🔹 Filtros -->
-  <form method="get" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; align-items:end;">
+  <form method="get" id="filtro-visitantes" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; align-items:end;">
+    
+    <!-- Condomínio -->
     <label style="display:grid; gap:6px">
       <span>Condomínio</span>
-      <select name="condominio" style="min-width:220px;">
+      <select name="condominio" id="condominio-select" style="min-width:220px;">
         <option value="">Todos</option>
         {% for c in condominios %}
-          <option value="{{ c.id }}" {% if condominio_pk == c.id|stringformat:"s" %}selected{% endif %}>
+          <option value="{{ c.id }}" {% if q.condominio|default:'' == c.id|stringformat:'s' %}selected{% endif %}>
             {{ c.nome }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <!-- Unidade (carregada dinamicamente via AJAX) -->
+    <label style="display:grid; gap:6px">
+      <span>Unidade</span>
+      <select name="unidade" id="unidade-select" style="min-width:160px;">
+        <option value="">Todas</option>
+        {% for u in unidades %}
+          <option value="{{ u.id }}" {% if q.unidade|default:'' == u.id|stringformat:'s' %}selected{% endif %}>
+            {{ u }}
           </option>
         {% endfor %}
       </select>
@@ -56,11 +71,12 @@
     </tbody>
   </table>
 
+  <!-- 🔹 Paginação -->
   {% if visitantes.has_other_pages %}
   <div style="margin-top:20px; text-align:center;">
     <div style="display:inline-flex; gap:6px;">
       {% if visitantes.has_previous %}
-        <a class="btn-outline" href="?page={{ visitantes.previous_page_number }}{% if condominio_pk %}&condominio={{ condominio_pk }}{% endif %}">Anterior</a>
+        <a class="btn-outline" href="?page={{ visitantes.previous_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.unidade %}&unidade={{ q.unidade }}{% endif %}">Anterior</a>
       {% else %}
         <span class="btn-outline disabled">Anterior</span>
       {% endif %}
@@ -70,15 +86,45 @@
       </span>
 
       {% if visitantes.has_next %}
-        <a class="btn-outline" href="?page={{ visitantes.next_page_number }}{% if condominio_pk %}&condominio={{ condominio_pk }}{% endif %}">Próxima</a>
+        <a class="btn-outline" href="?page={{ visitantes.next_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.unidade %}&unidade={{ q.unidade }}{% endif %}">Próxima</a>
       {% else %}
         <span class="btn-outline disabled">Próxima</span>
       {% endif %}
     </div>
   </div>
   {% endif %}
-
-
-
 </div>
+
+<!-- 🔹 Script dinâmico para Unidades -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const condSelect = document.getElementById("condominio-select");
+  const unidadeSelect = document.getElementById("unidade-select");
+
+  async function carregarUnidades(condominioId) {
+    if (!condominioId) {
+      unidadeSelect.innerHTML = '<option value="">Todas</option>';
+      return;
+    }
+    try {
+      const resp = await fetch(`/ajax/unidades/${condominioId}/`, { credentials: "same-origin" });
+      const html = await resp.text();
+      unidadeSelect.innerHTML = '<option value="">Todas</option>' + html;
+    } catch (error) {
+      console.error("Erro ao carregar unidades:", error);
+    }
+  }
+
+  condSelect.addEventListener("change", () => {
+    const condId = condSelect.value;
+    carregarUnidades(condId);
+  });
+
+  // Carrega automaticamente se já houver condomínio selecionado
+  if (condSelect.value) {
+    carregarUnidades(condSelect.value);
+  }
+});
+</script>
+
 {% endblock %}
