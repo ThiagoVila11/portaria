@@ -5,22 +5,23 @@
 {% block content %}
 <div class="card" style="padding:16px">
 
-  <form method="get" style="display:flex; gap:10px; margin-bottom:12px">
+  <!-- 🔹 Filtros -->
+  <form method="get" style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
     <label style="display:grid; gap:6px">
       <span>Condomínio</span>
-      <select name="condominio">
+      <select name="condominio" style="min-width:220px">
         <option value="">Todos</option>
         {% for c in condominios %}
           <option value="{{ c.id }}" {% if condominio_pk == c.id|stringformat:"s" %}selected{% endif %}>
-          {{ c.nome }}
+            {{ c.nome }}
           </option>
         {% endfor %}
       </select>
     </label>
 
     <label style="display:grid; gap:6px">
-        <span>Placa</span>
-        <input type="text" name="placa" value="{{ placa|default:'' }}">
+      <span>Placa</span>
+      <input type="text" name="placa" value="{{ placa|default:'' }}" placeholder="Digite a placa">
     </label>
 
     <div style="align-self:end">
@@ -29,31 +30,64 @@
     </div>
   </form>
 
-
+  <!-- 🔹 Total -->
   <p class="muted">Total: <strong>{{ total }}</strong></p>
-  <table border="1" cellpadding="6" width="100%">
-    <tr>
-      <th>Placa</th>
-      <th>Marca</th>
-      <th>Modelo</th>
-      <th>Cor</th>
-      <th>Tipo</th>
-      <th>Unidade</th>
 
-    </tr>
-    {% for v in veiculos %}
-    <tr>
-      <td>{{ v.Name }}</td>
-      <td>{{ v.Brand__c  }}</td>
-      <td>{{ v.reda__Model__c }}</td>
-      <td>{{ v.reda__Color__c }}</td>
-      <td>{{ v.Tipo_PT }}</td>
-      <td>{{ v.Vehicle_Unit__c }}</td>
-      
-    </tr>
-    {% empty %}
-    <tr><td colspan="6">Nenhum veículo encontrado.</td></tr>
-    {% endfor %}
+  <!-- 🔹 Tabela -->
+  <table border="1" cellpadding="6" width="100%" style="font-size:13px; border-collapse:collapse;">
+    <thead style="background:#f8f9fa;">
+      <tr>
+        <th>Placa</th>
+        <th>Marca</th>
+        <th>Modelo</th>
+        <th>Cor</th>
+        <th>Tipo</th>
+        <th>Unidade</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in veiculos %}
+      <tr>
+        <td>{{ v.Name }}</td>
+        <td>{{ v.Brand__c }}</td>
+        <td>{{ v.reda__Model__c }}</td>
+        <td>{{ v.reda__Color__c }}</td>
+        <td>{{ v.Tipo_PT }}</td>
+        <td>{{ v.Vehicle_Unit__c }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;">Nenhum veículo encontrado.</td></tr>
+      {% endfor %}
+    </tbody>
   </table>
+
+  <!-- 🔹 Paginação -->
+  {% if veiculos.has_other_pages %}
+  <div style="margin-top:20px; text-align:center;">
+    <div style="display:inline-flex; gap:6px;">
+      {% if veiculos.has_previous %}
+        <a class="btn-outline"
+           href="?page={{ veiculos.previous_page_number }}{% if condominio_pk %}&condominio={{ condominio_pk }}{% endif %}{% if placa %}&placa={{ placa }}{% endif %}">
+           Anterior
+        </a>
+      {% else %}
+        <span class="btn-outline disabled">Anterior</span>
+      {% endif %}
+
+      <span class="btn muted" style="pointer-events:none;">
+        Página {{ veiculos.number }} de {{ veiculos.paginator.num_pages }}
+      </span>
+
+      {% if veiculos.has_next %}
+        <a class="btn-outline"
+           href="?page={{ veiculos.next_page_number }}{% if condominio_pk %}&condominio={{ condominio_pk }}{% endif %}{% if placa %}&placa={{ placa }}{% endif %}">
+           Próxima
+        </a>
+      {% else %}
+        <span class="btn-outline disabled">Próxima</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

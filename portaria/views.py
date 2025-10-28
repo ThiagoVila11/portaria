@@ -955,8 +955,18 @@ def veiculos_unidades(request):
         tipo = r.get("Type__c")
         r["Tipo_PT"] = TIPO_TRADUZIDO.get(tipo, tipo)
 
+    # 🔹 Paginação (20 por página)
+    paginator = Paginator(recs, 20)
+    page = request.GET.get("page")
+    try:
+        veiculos_lista = paginator.page(page)
+    except PageNotAnInteger:
+        veiculos_lista = paginator.page(1)
+    except EmptyPage:
+        veiculos_lista = paginator.page(paginator.num_pages)
+
     ctx = {
-        "veiculos": recs,
+        "veiculos": veiculos_lista,
         "condominios": allowed,
         "total": len(recs),
         "placa": placa,
