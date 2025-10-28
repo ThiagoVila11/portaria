@@ -6,9 +6,9 @@
 {% block content %}
 {% now "Y-m-d" as today %}
 
-
 <div class="card" style="padding:16px; overflow-x:auto;">
 
+  <!-- 🔹 Filtros -->
   <form method="get" style="display:flex; gap:10px; margin-bottom:12px; flex-wrap: wrap;">
     <label style="display:grid; gap:6px">
       <span>Condomínio</span>
@@ -24,12 +24,7 @@
 
     <label style="display:grid; gap:6px">
       <span>Data início</span>
-      <input
-        type="date"
-        name="data_inicio"
-        value="{{ data_inicio|default:today|default:'' }}"
-      >
-
+      <input type="date" name="data_inicio" value="{{ data_inicio|default:today|default:'' }}">
     </label>
 
     <label style="display:grid; gap:6px">
@@ -43,11 +38,13 @@
     </div>
   </form>
 
+  <!-- 🔹 Total -->
   <p class="muted">Total: <strong>{{ total }}</strong></p>
 
+  <!-- 🔹 Tabela -->
   <div style="overflow-x:auto;">
     <table border="1" cellpadding="6" width="100%" style="border-collapse: collapse; min-width: 1000px;">
-      <thead>
+      <thead style="background:#f8f9fa;">
         <tr>
           <th>ID</th>
           <th>Espaço</th>
@@ -68,18 +65,45 @@
           <td>{{ v.Opportunity_property__c }}</td>
           <td>{{ v.Contact__r.Name }}</td>
           <td>{{ v.reda__Description__c }}</td>
-          <td>{{ v.reda__Start_Datetime__c|local_sp}}</td>
-          <td>{{ v.reda__End_Datetime__c|local_sp}}</td>
+          <td>{{ v.reda__Start_Datetime__c|local_sp }}</td>
+          <td>{{ v.reda__End_Datetime__c|local_sp }}</td>
           <td>{{ v.reda__Total_Booking_Amount__c }}</td>
           <td>{{ v.Status_PT }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="9">Nenhuma reserva encontrada.</td></tr>
+        <tr><td colspan="9" style="text-align:center;">Nenhuma reserva encontrada.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 
-</div>
+  <!-- 🔹 Paginação -->
+  {% if reservas.has_other_pages %}
+  <div style="margin-top:20px; text-align:center;">
+    <div style="display:inline-flex; gap:6px;">
+      {% if reservas.has_previous %}
+        <a class="btn-outline"
+           href="?page={{ reservas.previous_page_number }}{% if condominio_pk %}&condominio={{ condominio_pk }}{% endif %}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}">
+           Anterior
+        </a>
+      {% else %}
+        <span class="btn-outline disabled">Anterior</span>
+      {% endif %}
 
+      <span class="btn muted" style="pointer-events:none;">
+        Página {{ reservas.number }} de {{ reservas.paginator.num_pages }}
+      </span>
+
+      {% if reservas.has_next %}
+        <a class="btn-outline"
+           href="?page={{ reservas.next_page_number }}{% if condominio_pk %}&condominio={{ condominio_pk }}{% endif %}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}">
+           Próxima
+        </a>
+      {% else %}
+        <span class="btn-outline disabled">Próxima</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}

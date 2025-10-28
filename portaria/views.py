@@ -1134,8 +1134,18 @@ def reservas_unidades(request):
         r["reda__Start_Datetime__c"] = parse_salesforce_datetime(r.get("reda__Start_Datetime__c"))
         r["reda__End_Datetime__c"] = parse_salesforce_datetime(r.get("reda__End_Datetime__c"))
 
+    # 🔹 Paginação (20 por página)
+    paginator = Paginator(recs, 20)
+    page = request.GET.get("page")
+    try:
+        reservas_lista = paginator.page(page)
+    except PageNotAnInteger:
+        reservas_lista = paginator.page(1)
+    except EmptyPage:
+        reservas_lista = paginator.page(paginator.num_pages)
+
     ctx = {
-        "reservas": recs,
+        "reservas": reservas_lista,
         "condominios": allowed,
         "total": len(recs),
         "condominio_pk": condominio_pk,
