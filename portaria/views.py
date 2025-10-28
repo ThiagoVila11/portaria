@@ -24,6 +24,7 @@ from collections import OrderedDict
 from datetime import datetime
 from django.utils import timezone
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Q
 
 
 @login_required
@@ -522,10 +523,19 @@ from .models import Unidade
 
 @login_required
 def ajax_unidades_por_condominio(request, condominio_id: int):
+    #unidades = (
+    #    Unidade.objects
+    #    .filter(bloco__condominio_id=condominio_id)
+    #    .filter(numero__iregex=r"[0-9]{4}$")  # 🔍 Apenas se termina com 4 dígitos numéricos
+    #    .select_related("bloco")
+    #    .order_by("bloco__nome", "numero")
+    #)
     unidades = (
         Unidade.objects
-        .filter(bloco__condominio_id=condominio_id)
-        .filter(numero__iregex=r"[0-9]{4}$")  # 🔍 Apenas se termina com 4 dígitos numéricos
+        .filter(
+            Q(bloco__condominio_id=condominio_id),
+            Q(numero__iregex=r"[0-9]{4}$") | Q(numero__icontains="recepção")
+        )
         .select_related("bloco")
         .order_by("bloco__nome", "numero")
     )
