@@ -9,14 +9,27 @@
 <div class="card" style="padding:16px; overflow-x:auto;">
 
   <!-- 🔹 Filtros -->
-  <form method="get" style="display:flex; gap:10px; margin-bottom:12px; flex-wrap: wrap;">
+  <form method="get" id="filtro-reservas" style="display:flex; gap:10px; margin-bottom:12px; flex-wrap: wrap;">
     <label style="display:grid; gap:6px">
       <span>Condomínio</span>
-      <select name="condominio">
+      <select name="condominio" id="condominio-select" style="min-width:220px;">
         <option value="">Todos</option>
         {% for c in condominios %}
           <option value="{{ c.id }}" {% if condominio_pk == c.id|stringformat:"s" %}selected{% endif %}>
             {{ c.nome }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <!-- 🔹 Unidade (carregamento dinâmico) -->
+    <label style="display:grid; gap:6px">
+      <span>Unidade</span>
+      <select name="unidade" id="unidade-select" style="min-width:180px;">
+        <option value="">Todas</option>
+        {% for u in unidades %}
+          <option value="{{ u.id }}" {% if unidade_pk == u.id|stringformat:"s" %}selected{% endif %}>
+            {{ u }}
           </option>
         {% endfor %}
       </select>
@@ -83,7 +96,7 @@
     <div style="display:inline-flex; gap:6px;">
       {% if reservas.has_previous %}
         <a class="btn-outline"
-           href="?page={{ reservas.previous_page_number }}{% if condominio_pk %}&condominio={{ condominio_pk }}{% endif %}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}">
+           href="?page={{ reservas.previous_page_number }}{% if condominio_pk %}&condominio={{ condominio_pk }}{% endif %}{% if unidade_pk %}&unidade={{ unidade_pk }}{% endif %}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}">
            Anterior
         </a>
       {% else %}
@@ -96,7 +109,7 @@
 
       {% if reservas.has_next %}
         <a class="btn-outline"
-           href="?page={{ reservas.next_page_number }}{% if condominio_pk %}&condominio={{ condominio_pk }}{% endif %}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}">
+           href="?page={{ reservas.next_page_number }}{% if condominio_pk %}&condominio={{ condominio_pk }}{% endif %}{% if unidade_pk %}&unidade={{ unidade_pk }}{% endif %}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}">
            Próxima
         </a>
       {% else %}
@@ -106,4 +119,37 @@
   </div>
   {% endif %}
 </div>
+
+<!-- 🔹 Script dinâmico para carregar Unidades -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const condSelect = document.getElementById("condominio-select");
+  const unidadeSelect = document.getElementById("unidade-select");
+
+  async function carregarUnidades(condominioId) {
+    if (!condominioId) {
+      unidadeSelect.innerHTML = '<option value="">Todas</option>';
+      return;
+    }
+    try {
+      const resp = await fetch(`/ajax/unidades/${condominioId}/`, { credentials: "same-origin" });
+      const html = await resp.text();
+      unidadeSelect.innerHTML = '<option value="">Todas</option>' + html;
+    } catch (error) {
+      console.error("Erro ao carregar unidades:", error);
+    }
+  }
+
+  condSelect.addEventListener("change", () => {
+    const condId = condSelect.value;
+    carregarUnidades(condId);
+  });
+
+  // Carrega automaticamente se já houver condomínio selecionado
+  if (condSelect.value) {
+    carregarUnidades(condSelect.value);
+  }
+});
+</script>
+
 {% endblock %}

@@ -807,18 +807,18 @@ def visitantes_preaprovados(request):
             .first()
         )
         if sf_property_id:
-            soql += f" AND reda__Property__c = '{sf_property_id}'"
-            print(f"🧩 Filtro manual aplicado: reda__Property__c = '{sf_property_id}'")
+            soql += f" AND reda__Property__r.reda__Region__c = '{sf_property_id}'"
+            #print(f"🧩 Filtro manual aplicado: reda__Property__r.reda__Region__c = '{sf_property_id}'")
     # 🔹 Filtro automático (usuário com condomínios permitidos)
     elif allowed_sf_ids:
         sf_filter = ",".join(f"'{c}'" for c in allowed_sf_ids if c)
         #soql += f" AND reda__Property__c IN ({sf_filter})"
-        print(f"🔒 Filtro automático aplicado: reda__Property__c IN ({sf_filter})")
+        print(f"🔒 Filtro automático aplicado: reda__Property__r.reda__Region__c IN ({sf_filter})")
 
     if unidade_filtro:    
         unidade_desc = Unidade.objects.filter(id=unidade_filtro).first()
-        unidade_desc = 'VMD-0502'
-        print(f"🔍 Unidade filtro descrição: '{unidade_desc}'")
+        #unidade_desc = 'VMD-0502'
+        #print(f"🔍 Unidade filtro descrição: '{unidade_desc}'")
         soql += f" AND reda__Property__r.Name = '{unidade_desc}'"
 
     # 🔹 Ordenação
@@ -828,12 +828,12 @@ def visitantes_preaprovados(request):
     result = sf.query_all(soql)
 
     recs = result.get("records", [])
-    print(f"📦 Registros retornados: {len(recs)}")
+    #print(f"📦 Registros retornados: {len(recs)}")
 
     # 🔹 Formata datas
     for r in recs:
         r.pop("attributes", None)
-        print(f"Nome: {r.get('reda__Property__r.Name')}")
+        #print(f"Nome: {r.get('reda__Property__r.Name')}")
         for field in ["CreatedDate", "reda__Permitted_Till_Datetime__c"]:
             val = r.get(field)
             if isinstance(val, str) and "T" in val:
@@ -1063,6 +1063,7 @@ def reservas_unidades(request):
     condominio_pk = request.GET.get("condominio")
     data_inicio = request.GET.get("data_inicio")
     data_fim = request.GET.get("data_fim")
+    unidade_param = request.GET.get("unidade", "").strip()
 
     allowed = allowed_condominios_for(request.user)
 
@@ -1115,6 +1116,12 @@ def reservas_unidades(request):
         except Exception:
             pass
 
+    if unidade_param:
+        unidade_nome = Unidade.objects.filter(id=unidade_param).values_list("numero", flat=True).first()
+        if unidade_nome:
+            #soql += f" AND Opportunity_property__c LIKE '%{unidade_nome}%'"
+            where_clauses.append(f"Opportunity_property__c LIKE '%{unidade_nome}%'")
+
     # 🔹 Monta WHERE se houver filtros
     if where_clauses:
         soql += " WHERE " + " AND ".join(where_clauses)
@@ -1156,6 +1163,8 @@ def reservas_unidades(request):
 
     ctx = {
         "reservas": reservas_lista,
+        "unidade_pk": unidade_param,
+        "unidades": Unidade.objects.filter(bloco__condominio_id=condominio_pk) if condominio_pk else [],
         "condominios": allowed,
         "total": len(recs),
         "condominio_pk": condominio_pk,
