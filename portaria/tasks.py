@@ -37,3 +37,12 @@ def atualizar_senhas_encomendas():
 
     print(f"📦 Atualização concluída: {total} encomendas atualizadas, {erros} erros.")
     return {"atualizadas": total, "erros": erros}
+
+@shared_task
+def atualiza_acesso_salesforce_task():
+    from .views import atualiza_acesso_salesforce
+
+    # Chama sua rotina sem request
+    print("🔄 Iniciando atualização de acessos no Salesforce...")
+    atualiza_acesso_salesforce(None)
+    print("✅ Atualização concluída com sucesso.")

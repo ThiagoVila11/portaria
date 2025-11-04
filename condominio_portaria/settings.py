@@ -128,8 +128,8 @@ CELERY_ENABLE_UTC = False
 from celery.schedules import crontab
 
 CELERY_BEAT_SCHEDULE = {
-    "atualizar_senhas_encomendas_cada_30min": {
-        "task": "portaria.tasks.atualizar_senhas_encomendas",
-        "schedule": crontab(minute="*/30"),  # 🔁 a cada 30 minutos
+    'atualiza-acesso-salesforce': {
+        'task': 'app.tasks.atualiza_acesso_salesforce_task',
+        'schedule': 300.0,  # a cada 5 minutos (300 segundos)
     },
 }
