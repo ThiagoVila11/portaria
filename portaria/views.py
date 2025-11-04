@@ -326,56 +326,56 @@ def atualiza_acesso_salesforce(request):
         if not evento.sf_visitor_log_id:
             continue  # só atualiza se tiver o ID do Visitor Log salvo
 
-        #try:
-        # Consulta SOQL no Salesforce
-        soql = f"""
-            SELECT Id, reda__Status__c, reda__Permitted_Till_Datetime__c
-            FROM reda__Visitor_Log__c
-            WHERE Id = '{evento.sf_visitor_log_id}'
-        """
-        result = sf.query(soql).get("records", [])
-        print(f"Consulta SOQL para {evento.pessoa_nome} (ID {evento.sf_visitor_log_id}): {result}")
-        if result:
-            status_sf = result[0].get("reda__Status__c")
-            permitted_str = result[0].get("reda__Permitted_Till_Datetime__c")
+        try:
+            # Consulta SOQL no Salesforce
+            soql = f"""
+                SELECT Id, reda__Status__c, reda__Permitted_Till_Datetime__c
+                FROM reda__Visitor_Log__c
+                WHERE Id = '{evento.sf_visitor_log_id}'
+            """
+            result = sf.query(soql).get("records", [])
+            print(f"Consulta SOQL para {evento.pessoa_nome} (ID {evento.sf_visitor_log_id}): {result}")
+            if result:
+                status_sf = result[0].get("reda__Status__c")
+                permitted_str = result[0].get("reda__Permitted_Till_Datetime__c")
 
-            # Traduz status Salesforce → local
-            STATUS_MAP = {
-                "Permitido": "Permitted",
-                "Negado": "Cancelled",
-                "Aguardando": "Requested",
-                "Liberado": "Checked In",
-            }
-            novo_status = STATUS_MAP.get(status_sf, evento.resultado)
-            # 🔹 Atualiza o campo "liberado_ate" se houver valor
-            if permitted_str:
-                try:
-                    permitted_dt = datetime.fromisoformat(permitted_str.replace("Z", "+00:00"))
-                    evento.liberado_ate = permitted_dt
-                except Exception as e:
-                    print(f"⚠️ Erro ao converter data de liberação ({permitted_str}): {e}")
+                # Traduz status Salesforce → local
+                STATUS_MAP = {
+                    "Permitido": "Permitted",
+                    "Negado": "Cancelled",
+                    "Aguardando": "Requested",
+                    "Liberado": "Checked In",
+                }
+                novo_status = STATUS_MAP.get(status_sf, evento.resultado)
+                # 🔹 Atualiza o campo "liberado_ate" se houver valor
+                if permitted_str:
+                    try:
+                        permitted_dt = datetime.fromisoformat(permitted_str.replace("Z", "+00:00"))
+                        evento.liberado_ate = permitted_dt
+                    except Exception as e:
+                        print(f"⚠️ Erro ao converter data de liberação ({permitted_str}): {e}")
 
-            print(f"Status Salesforce: {status_sf} → Novo status local: {novo_status}")
-            #if novo_status != evento.resultado:
-            #evento.resultado = status_sf
-            #evento.save(update_fields=["resultado"])
+                print(f"Status Salesforce: {status_sf} → Novo status local: {novo_status}")
+                #if novo_status != evento.resultado:
+                #evento.resultado = status_sf
+                #evento.save(update_fields=["resultado"])
 
-            # 🔹 Atualiza se houver mudanças
-            campos_para_salvar = []
-            #if novo_status != evento.resultado:
-            evento.resultado = status_sf
-            campos_para_salvar.append("resultado")
-            #if permitted_str:
-            campos_para_salvar.append("liberado_ate")
+                # 🔹 Atualiza se houver mudanças
+                campos_para_salvar = []
+                #if novo_status != evento.resultado:
+                evento.resultado = status_sf
+                campos_para_salvar.append("resultado")
+                #if permitted_str:
+                campos_para_salvar.append("liberado_ate")
 
-            if campos_para_salvar:
-                evento.save(update_fields=campos_para_salvar)
-                print(f"✅ Atualizado {evento.pessoa_nome}: {status_sf} até {evento.liberado_ate}")
+                if campos_para_salvar:
+                    evento.save(update_fields=campos_para_salvar)
+                    print(f"✅ Atualizado {evento.pessoa_nome}: {status_sf} até {evento.liberado_ate}")
 
-        #except Exception as e:
-        #    print(f"Finalizado com sucesso")
+        except Exception as e:
+            print(f"Finalizado com sucesso")
 
-    return
+    return redirect("acesso_list")
 
 @login_required
 def acesso_create(request):
