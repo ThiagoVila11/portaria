@@ -165,29 +165,32 @@ document.addEventListener("DOMContentLoaded", () => {
   // Carrega automaticamente se houver condomínio selecionado
   if (condSelect.value) carregarUnidades(condSelect.value);
 
-  // 🔸 Botão Atualizar dados
-  btnAtualizar.addEventListener("click", async () => {
-    btnAtualizar.disabled = true;
-    btnAtualizar.textContent = "⏳ Atualizando...";
+      // 🔸 Botão Atualizar dados (sem alert)
+    btnAtualizar.addEventListener("click", async () => {
+      btnAtualizar.disabled = true;
+      btnAtualizar.textContent = "⏳ Atualizando...";
 
-    try {
-      const response = await fetch("{% url 'atualiza_acesso_salesforce' %}", {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]')?.value || "",
-        },
-      });
+      try {
+        const response = await fetch("{% url 'atualiza_acesso_salesforce' %}", {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]')?.value || "",
+          },
+        });
 
-      const data = await response.json();
-      alert(data.message || "Atualização concluída com sucesso!");
-    } catch (error) {
-      alert("Erro ao atualizar dados de acessos.");
-      console.error(error);
-    } finally {
-      btnAtualizar.disabled = false;
-      btnAtualizar.textContent = "🔄 Atualizar dados";
-    }
-  });
+        if (!response.ok) {
+          console.error("Erro na atualização de acessos:", response.statusText);
+        } else {
+          console.log("✅ Atualização concluída com sucesso!");
+        }
+      } catch (error) {
+        console.error("⚠️ Erro ao atualizar dados de acessos:", error);
+      } finally {
+        btnAtualizar.disabled = false;
+        btnAtualizar.textContent = "🔄 Atualizar dados";
+      }
+    });
+
 });
 </script>
 {% endblock %}
