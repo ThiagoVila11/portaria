@@ -4,164 +4,190 @@
 {% block page_title %}Acessos{% endblock %}
 
 {% block content %}
-  <div class="card" style="padding:16px">
+<div class="card" style="padding:16px">
 
-    <!-- 🔹 Filtros -->
-    <form method="get" id="filtro-acessos" style="display:grid; gap:10px; margin-bottom:12px">
-      <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:end">
-        
-        <!-- 🔹 Condomínio -->
-        <label style="display:grid; gap:6px">
-          <span>Condomínio</span>
-          <select name="condominio" id="condominio-select" style="min-width:220px">
-            <option value="">Todos</option>
-            {% for c in condominios %}
-              <option value="{{ c.id }}" {% if q.condominio|default:'' == c.id|stringformat:'s' %}selected{% endif %}>
-                {{ c.nome }}
-              </option>
-            {% endfor %}
-          </select>
-        </label>
+  <!-- 🔹 Filtros -->
+  <form method="get" id="filtro-acessos" style="display:grid; gap:10px; margin-bottom:12px">
+    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:end">
+      
+      <!-- 🔹 Condomínio -->
+      <label style="display:grid; gap:6px">
+        <span>Condomínio</span>
+        <select name="condominio" id="condominio-select" style="min-width:220px">
+          <option value="">Todos</option>
+          {% for c in condominios %}
+            <option value="{{ c.id }}" {% if q.condominio|default:'' == c.id|stringformat:'s' %}selected{% endif %}>
+              {{ c.nome }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
 
-        <!-- 🔹 Unidade (dinâmica) -->
-        <label style="display:grid; gap:6px">
-          <span>Unidade</span>
-          <select name="unidade" id="unidade-select" style="min-width:160px">
-            <option value="">Todas</option>
-            {% for u in unidades %}
-              <option value="{{ u.id }}" {% if q.unidade|default:'' == u.id|stringformat:'s' %}selected{% endif %}>
-                {{ u }}
-              </option>
-            {% endfor %}
-          </select>
-        </label>
+      <!-- 🔹 Unidade -->
+      <label style="display:grid; gap:6px">
+        <span>Unidade</span>
+        <select name="unidade" id="unidade-select" style="min-width:160px">
+          <option value="">Todas</option>
+          {% for u in unidades %}
+            <option value="{{ u.id }}" {% if q.unidade|default:'' == u.id|stringformat:'s' %}selected{% endif %}>
+              {{ u }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
 
-        <label style="display:grid; gap:6px">
-          <span>Data inicial</span>
-          <input type="date" name="dt_ini" value="{{ q.dt_ini|default:'' }}">
-        </label>
+      <label style="display:grid; gap:6px">
+        <span>Data inicial</span>
+        <input type="date" name="dt_ini" value="{{ q.dt_ini|default:'' }}">
+      </label>
 
-        <label style="display:grid; gap:6px">
-          <span>Data final</span>
-          <input type="date" name="dt_fim" value="{{ q.dt_fim|default:'' }}">
-        </label>
+      <label style="display:grid; gap:6px">
+        <span>Data final</span>
+        <input type="date" name="dt_fim" value="{{ q.dt_fim|default:'' }}">
+      </label>
 
-        <label style="display:grid; gap:6px">
-          <span>Nome</span>
-          <input type="text" name="nome" value="{{ q.nome|default:'' }}" placeholder="Nome da pessoa">
-        </label>
+      <label style="display:grid; gap:6px">
+        <span>Nome</span>
+        <input type="text" name="nome" value="{{ q.nome|default:'' }}" placeholder="Nome da pessoa">
+      </label>
 
-        <div style="display:flex; gap:8px">
-          <button class="btn" type="submit">Filtrar</button>
-          <a class="btn-outline" href="{% url 'acesso_list' %}">Limpar</a>
-        </div>
+      <div style="display:flex; gap:8px; align-items:end;">
+        <button class="btn" type="submit">Filtrar</button>
+        <a class="btn-outline" href="{% url 'acesso_list' %}">Limpar</a>
+        <!-- 🔹 Botão de atualização -->
+        <button type="button" id="btn-atualizar" class="btn-outline" style="white-space:nowrap;">
+          🔄 Atualizar dados
+        </button>
       </div>
-    </form>
+    </div>
+  </form>
 
-    <p>
-      <a class="btn" href="{% url 'acesso_create' %}">Registrar acesso</a>
-      <a class="btn-outline" style="margin-left:8px" href="{% url 'dashboard' %}">Voltar</a>
-    </p>
+  <p>
+    <a class="btn" href="{% url 'acesso_create' %}">Registrar acesso</a>
+    <a class="btn-outline" style="margin-left:8px" href="{% url 'dashboard' %}">Voltar</a>
+  </p>
 
-    <!-- 🔹 Tabela de acessos -->
-    <table border="1" cellpadding="6" width="100%" style="font-size:13px; border-collapse:collapse;">
-      <thead style="background:#f8f9fa;">
-        <tr>
-          <th>ID</th>
-          <th>Unidade</th>
-          <th>Nome</th>
-          <th>Telefone</th>
-          <th>Tipo</th>
-          <th>Data da criação</th>
-          <th>Status</th>
-          <th style="white-space:nowrap">Ação</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for a in eventos %}
-        <tr>
-          <td>{{ a.id }}</td>
-          <td>{{ a.unidade }}</td>
-          <td>{{ a.pessoa_nome }}</td>
-          <td>{{ a.pessoa_telefone }}</td>
-          <td>{{ a.get_pessoa_tipo_display }}</td>
-          <td>{% if a.criado_em %}{{ a.criado_em|date:"d/m/Y H:i" }}{% else %}-{% endif %}</td>
-          <td>{{ a.get_resultado_display }}</td>
-          <td style="white-space:nowrap; text-align:center;">
-            {% if a.resultado == "Requested" and perms.portaria.delete_eventoacesso %}
-              <form method="post"
-                    action="{% url 'acesso_delete' a.id %}"
-                    style="display:inline"
-                    onsubmit="return confirm('Excluir o registro de acesso de {{ a.pessoa_nome }} em {{ a.criado_em|date:"d/m/Y H:i" }}?');">
-                {% csrf_token %}
-                <button class="btn-outline"
-                        style="border-color:#dc2626; color:#dc2626; padding:2px 8px; font-size:12px;">
-                  Excluir
-                </button>
-              </form>
-            {% else %}
-              —
-            {% endif %}
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="8" style="text-align:center;">Nenhum evento de acesso encontrado.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    {% if eventos.has_other_pages %}
-      <div style="margin-top:20px; text-align:center;">
-        <div style="display:inline-flex; gap:4px;">
-          {% if eventos.has_previous %}
-            <a class="btn-outline" href="?page={{ eventos.previous_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.unidade %}&unidade={{ q.unidade }}{% endif %}{% if q.nome %}&nome={{ q.nome }}{% endif %}{% if q.dt_ini %}&dt_ini={{ q.dt_ini }}{% endif %}{% if q.dt_fim %}&dt_fim={{ q.dt_fim }}{% endif %}">Anterior</a>
+  <!-- 🔹 Tabela -->
+  <table border="1" cellpadding="6" width="100%" style="font-size:13px; border-collapse:collapse;">
+    <thead style="background:#f8f9fa;">
+      <tr>
+        <th>ID</th>
+        <th>Unidade</th>
+        <th>Nome</th>
+        <th>Telefone</th>
+        <th>Tipo</th>
+        <th>Data da criação</th>
+        <th>Status</th>
+        <th style="white-space:nowrap">Ação</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in eventos %}
+      <tr>
+        <td>{{ a.id }}</td>
+        <td>{{ a.unidade }}</td>
+        <td>{{ a.pessoa_nome }}</td>
+        <td>{{ a.pessoa_telefone }}</td>
+        <td>{{ a.get_pessoa_tipo_display }}</td>
+        <td>{% if a.criado_em %}{{ a.criado_em|date:"d/m/Y H:i" }}{% else %}-{% endif %}</td>
+        <td>{{ a.get_resultado_display }}</td>
+        <td style="white-space:nowrap; text-align:center;">
+          {% if a.resultado == "Requested" and perms.portaria.delete_eventoacesso %}
+            <form method="post"
+                  action="{% url 'acesso_delete' a.id %}"
+                  style="display:inline"
+                  onsubmit="return confirm('Excluir o registro de acesso de {{ a.pessoa_nome }} em {{ a.criado_em|date:"d/m/Y H:i" }}?');">
+              {% csrf_token %}
+              <button class="btn-outline"
+                      style="border-color:#dc2626; color:#dc2626; padding:2px 8px; font-size:12px;">
+                Excluir
+              </button>
+            </form>
           {% else %}
-            <span class="btn-outline disabled">Anterior</span>
+            —
           {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" style="text-align:center;">Nenhum evento de acesso encontrado.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
-          <span class="btn muted" style="pointer-events:none;">
-            Página {{ eventos.number }} de {{ eventos.paginator.num_pages }}
-          </span>
+  <!-- 🔹 Paginação -->
+  {% if eventos.has_other_pages %}
+    <div style="margin-top:20px; text-align:center;">
+      <div style="display:inline-flex; gap:4px;">
+        {% if eventos.has_previous %}
+          <a class="btn-outline" href="?page={{ eventos.previous_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.unidade %}&unidade={{ q.unidade }}{% endif %}{% if q.nome %}&nome={{ q.nome }}{% endif %}{% if q.dt_ini %}&dt_ini={{ q.dt_ini }}{% endif %}{% if q.dt_fim %}&dt_fim={{ q.dt_fim }}{% endif %}">Anterior</a>
+        {% else %}
+          <span class="btn-outline disabled">Anterior</span>
+        {% endif %}
 
-          {% if eventos.has_next %}
-            <a class="btn-outline" href="?page={{ eventos.next_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.unidade %}&unidade={{ q.unidade }}{% endif %}{% if q.nome %}&nome={{ q.nome }}{% endif %}{% if q.dt_ini %}&dt_ini={{ q.dt_ini }}{% endif %}{% if q.dt_fim %}&dt_fim={{ q.dt_fim }}{% endif %}">Próxima</a>
-          {% else %}
-            <span class="btn-outline disabled">Próxima</span>
-          {% endif %}
-        </div>
+        <span class="btn muted" style="pointer-events:none;">
+          Página {{ eventos.number }} de {{ eventos.paginator.num_pages }}
+        </span>
+
+        {% if eventos.has_next %}
+          <a class="btn-outline" href="?page={{ eventos.next_page_number }}{% if q.condominio %}&condominio={{ q.condominio }}{% endif %}{% if q.unidade %}&unidade={{ q.unidade }}{% endif %}{% if q.nome %}&nome={{ q.nome }}{% endif %}{% if q.dt_ini %}&dt_ini={{ q.dt_ini }}{% endif %}{% if q.dt_fim %}&dt_fim={{ q.dt_fim }}{% endif %}">Próxima</a>
+        {% else %}
+          <span class="btn-outline disabled">Próxima</span>
+        {% endif %}
       </div>
-    {% endif %}
-  </div>
+    </div>
+  {% endif %}
+</div>
 
-  <!-- 🔹 Script dinâmico para carregar unidades -->
-  <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const condSelect = document.getElementById("condominio-select");
-    const unidadeSelect = document.getElementById("unidade-select");
+<!-- 🔹 Script dinâmico para carregar unidades -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const condSelect = document.getElementById("condominio-select");
+  const unidadeSelect = document.getElementById("unidade-select");
+  const btnAtualizar = document.getElementById("btn-atualizar");
 
-    async function carregarUnidades(condominioId) {
-      if (!condominioId) {
-        unidadeSelect.innerHTML = '<option value="">Todas</option>';
-        return;
-      }
-      try {
-        const resp = await fetch(`/ajax/unidades/${condominioId}/`, { credentials: "same-origin" });
-        const html = await resp.text();
-        unidadeSelect.innerHTML = '<option value="">Todas</option>' + html;
-      } catch (error) {
-        console.error("Erro ao carregar unidades:", error);
-      }
+  // 🔸 Atualiza lista de unidades conforme o condomínio selecionado
+  async function carregarUnidades(condominioId) {
+    if (!condominioId) {
+      unidadeSelect.innerHTML = '<option value="">Todas</option>';
+      return;
     }
+    try {
+      const resp = await fetch(`/ajax/unidades/${condominioId}/`, { credentials: "same-origin" });
+      const html = await resp.text();
+      unidadeSelect.innerHTML = '<option value="">Todas</option>' + html;
+    } catch (error) {
+      console.error("Erro ao carregar unidades:", error);
+    }
+  }
 
-    condSelect.addEventListener("change", () => {
-      const condId = condSelect.value;
-      carregarUnidades(condId);
-    });
+  condSelect.addEventListener("change", () => carregarUnidades(condSelect.value));
 
-    // Se já houver um condomínio selecionado, carrega as unidades correspondentes
-    if (condSelect.value) {
-      carregarUnidades(condSelect.value);
+  // Carrega automaticamente se houver condomínio selecionado
+  if (condSelect.value) carregarUnidades(condSelect.value);
+
+  // 🔸 Botão Atualizar dados
+  btnAtualizar.addEventListener("click", async () => {
+    btnAtualizar.disabled = true;
+    btnAtualizar.textContent = "⏳ Atualizando...";
+
+    try {
+      const response = await fetch("{% url 'atualiza_acesso_salesforce' %}", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]')?.value || "",
+        },
+      });
+
+      const data = await response.json();
+      alert(data.message || "Atualização concluída com sucesso!");
+    } catch (error) {
+      alert("Erro ao atualizar dados de acessos.");
+      console.error(error);
+    } finally {
+      btnAtualizar.disabled = false;
+      btnAtualizar.textContent = "🔄 Atualizar dados";
     }
   });
-  </script>
+});
+</script>
 {% endblock %}

@@ -19,6 +19,8 @@ path('acessos/', views.acesso_list, name='acesso_list'),
 path('acessos/novo/', views.acesso_create, name='acesso_create'),
 path('acessos/<uuid:pk>/excluir/', views.acesso_delete, name='acesso_delete'),
 path('acessos/<uuid:pk>/editar/', views.acesso_edit, name='acesso_edit'),
+path("atualiza_acesso_salesforce/", views.atualiza_acesso_salesforce, name="atualiza_acesso_salesforce"),
+
 
 path("sf/tickets/",  sfv.sf_tickets_list,  name="sf_tickets_list"),
 path("sf/visitors/", sfv.sf_visitors_list, name="sf_visitors_list"),
