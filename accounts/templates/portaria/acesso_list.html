@@ -51,14 +51,6 @@
         <input type="text" name="nome" value="{{ q.nome|default:'' }}" placeholder="Nome da pessoa">
       </label>
 
-      <div style="display:flex; gap:8px; align-items:end;">
-        <button class="btn" type="submit">Filtrar</button>
-        <a class="btn-outline" href="{% url 'acesso_list' %}">Limpar</a>
-        <!-- 🔹 Botão de atualização -->
-        <button type="button" id="btn-atualizar" class="btn-outline" style="white-space:nowrap;">
-          🔄 Atualizar dados
-        </button>
-      </div>
     </div>
   </form>
 
