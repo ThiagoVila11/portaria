@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% load tz %}
+
+{% block title %}Bicicletas · Portaria{% endblock %}
+{% block page_title %}Bicicletas - Administração{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:16px">
+
+  <!-- 🔹 Filtros -->
+  <form method="get" id="filtro-bicicletas" style="display:grid; gap:10px; margin-bottom:12px">
+    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:end">
+
+      <!-- Condomínio -->
+      <label style="display:grid; gap:6px">
+        <span>Condomínio</span>
+        <select name="condominio" id="condominio-select" style="min-width:220px">
+          <option value="">Todos</option>
+          {% for c in condominios %}
+            <option value="{{ c.id }}" {% if q.condominio|default:'' == c.id|stringformat:"s" %}selected{% endif %}>
+              {{ c.nome }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <!-- Unidade (carregada dinamicamente) -->
+      <label style="display:grid; gap:6px">
+        <span>Unidade</span>
+        <select name="unidade" id="unidade-select" style="min-width:160px">
+          <option value="">Todas</option>
+          {% for u in unidades %}
+            <option value="{{ u.id }}" {% if q.unidade|default:'' == u.id|stringformat:"s" %}selected{% endif %}>
+              {{ u.numero }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <!-- Modelo -->
+      <label style="display:grid; gap:6px">
+        <span>Modelo</span>
+        <input type="text" name="modelo" value="{{ q.modelo|default:'' }}" placeholder="Ex: Caloi, Trek, Oggi...">
+      </label>
+
+      <!-- Botões -->
+      <div style="display:flex; gap:8px">
+        <button class="btn" type="submit">Filtrar</button>
+        <a class="btn-outline" href="{% url 'lista_bicicletas' %}">Limpar</a>
+      </div>
+
+    </div>
+  </form>
+
+  <!-- Contador -->
+  <p class="muted" style="margin: 6px 0 12px">
+    Resultados: <strong>{{ total|default:bicicletas|length }}</strong>
+  </p>
+
+  <!-- Ações -->
+  <p>
+    <a class="btn" href="{% url 'criar_bicicleta' %}">Registrar Bicicleta</a>
+    <a class="btn-outline" style="margin-left:8px" href="{% url 'dashboard' %}">Voltar</a>
+  </p>
+
+  <!-- 🔹 Tabela -->
+  <table border="1" cellpadding="6" width="100%" style="font-size: 13px; border-collapse: collapse;">
+    <thead style="background: #f8f9fa;">
+      <tr>
+        <th>ID</th>
+        <th>Modelo</th>
+        <th>Condomínio</th>
+        <th>Unidade</th>
+        <th style="white-space:nowrap;">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in bicicletas %}
+      <tr>
+        <td>{{ b.id }}</td>
+        <td>{{ b.modelo }}</td>
+        <td>{{ b.unidade.bloco.condominio.nome }}</td>
+        <td>{{ b.unidade.numero }}</td>
+        <td style="white-space:nowrap;">
+          <form action="{% url 'excluir_bicicleta' b.id %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm" style="font-size:12px; background-color:#dc3545; border:none;"
+                    onclick="return confirm('Tem certeza que deseja excluir esta bicicleta?');">
+              Excluir
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5">Nenhuma bicicleta encontrada para o filtro aplicado.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- 🔹 Paginação -->
+  {% if bicicletas.has_other_pages %}
+  <div style="margin-top:20px; text-align:center;">
+    <div style="display:inline-flex; gap:4px;">
+      {% if bicicletas.has_previous %}
+        <a class="btn-outline" href="?page={{ bicicletas.previous_page_number }}">Anterior</a>
+      {% else %}
+        <span class="btn-outline disabled">Anterior</span>
+      {% endif %}
+
+      <span class="btn muted" style="pointer-events:none;">
+        Página {{ bicicletas.number }} de {{ bicicletas.paginator.num_pages }}
+      </span>
+
+      {% if bicicletas.has_next %}
+        <a class="btn-outline" href="?page={{ bicicletas.next_page_number }}">Próxima</a>
+      {% else %}
+        <span class="btn-outline disabled">Próxima</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- 🔹 Script dinâmico: carregar unidades conforme condomínio -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const condSelect = document.getElementById("condominio-select");
+  const unidadeSelect = document.getElementById("unidade-select");
+
+  async function carregarUnidades(condominioId) {
+    if (!condominioId) {
+      unidadeSelect.innerHTML = '<option value="">Todas</option>';
+      return;
+    }
+    try {
+      const resp = await fetch(`/ajax/unidades/${condominioId}/`, { credentials: "same-origin" });
+      const html = await resp.text();
+      unidadeSelect.innerHTML = '<option value="">Todas</option>' + html;
+    } catch (error) {
+      console.error("Erro ao carregar unidades:", error);
+    }
+  }
+
+  condSelect.addEventListener("change", () => {
+    const condId = condSelect.value;
+    carregarUnidades(condId);
+  });
+
+  if (condSelect.value) {
+    carregarUnidades(condSelect.value);
+  }
+});
+</script>
+
+{% endblock %}

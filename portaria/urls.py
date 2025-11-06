@@ -21,6 +21,10 @@ path('acessos/<uuid:pk>/excluir/', views.acesso_delete, name='acesso_delete'),
 path('acessos/<uuid:pk>/editar/', views.acesso_edit, name='acesso_edit'),
 path("atualiza_acesso_salesforce/", views.atualiza_acesso_salesforce, name="atualiza_acesso_salesforce"),
 
+path("bicicletas/", views.lista_bicicletas, name="lista_bicicletas"),
+path("bicicletas/nova/", views.criar_bicicleta, name="criar_bicicleta"),
+path("bicicletas/<int:pk>/editar/", views.editar_bicicleta, name="editar_bicicleta"),
+path("bicicletas/<int:pk>/excluir/", views.excluir_bicicleta, name="excluir_bicicleta"),
 
 path("sf/tickets/",  sfv.sf_tickets_list,  name="sf_tickets_list"),
 path("sf/visitors/", sfv.sf_visitors_list, name="sf_visitors_list"),
@@ -40,4 +44,11 @@ path("api/reservas_unidades/", reservas_unidades, name="reservas_unidades"),
 path("api/morador_unidades/", morador_unidades, name="morador_unidades"),
 
 path("ajax/unidades_novo/<int:condominio_id>/", views.ajax_unidades, name="ajax_unidades"),
+
+path("api/unidades_por_bloco/<int:bloco_id>/", views.unidades_por_bloco, name="unidades_por_bloco"),
+
+path("ajax/blocos/<int:condominio_id>/", views.ajax_blocos, name="ajax_blocos"),
+path("ajax/unidades_por_bloco/<int:bloco_id>/", views.ajax_unidades_por_bloco, name="ajax_unidades_por_bloco"),
+
+
 ]

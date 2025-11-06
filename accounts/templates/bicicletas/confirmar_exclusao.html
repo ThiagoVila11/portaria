@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Excluir Bicicleta</h2>
+<p>Tem certeza que deseja excluir <strong>{{ bicicleta.modelo }}</strong> ({{ bicicleta.unidade }})?</p>
+
+<form method="post">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-danger">Confirmar</button>
+  <a href="{% url 'lista_bicicletas' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

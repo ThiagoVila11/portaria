@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}{{ obj|default:"Nova Bicicleta" }} · Portaria{% endblock %}
+{% block page_title %}{{ obj|default:"Nova Bicicleta" }}{% endblock %}
+
+{% block content %}
+<style>
+  select[name="bloco"] { display: none !important; visibility: hidden; }
+</style>
+
+<div class="card" style="padding:16px">
+  <form id="bicicleta-form" method="post" enctype="multipart/form-data" style="display:grid; gap:12px">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="msg error">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div style="display:grid; gap:10px; grid-template-columns: repeat(2, minmax(220px, 1fr));">
+
+      <!-- Condomínio -->
+      <label style="display:grid; gap:6px">
+        <span>Condomínio</span>
+        {{ form.condominio }}
+        {{ form.condominio.errors }}
+      </label>
+
+    <!-- Campo Bloco invisível, mas funcional -->
+    <div style="display:none;">
+      {{ form.bloco }}
+    </div>
+
+
+      <!-- Unidade -->
+      <label style="display:grid; gap:6px">
+        <span>Unidade</span>
+        {{ form.unidade }}
+        {{ form.unidade.errors }}
+      </label>
+
+      <!-- Modelo -->
+      <label style="display:grid; gap:6px; grid-column: 1 / -1;">
+        <span>Modelo da Bicicleta</span>
+        {{ form.modelo }}
+        {{ form.modelo.errors }}
+      </label>
+    </div>
+
+    <!-- Botões -->
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
+      <button id="btn-salvar" class="btn" type="submit">Salvar Bicicleta</button>
+      <a class="btn-outline" href="{% url 'lista_bicicletas' %}">Cancelar</a>
+    </div>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const $cond = document.querySelector('select[name="condominio"]');
+  const $bloco = document.querySelector('select[name="bloco"]');
+  const $uni = document.querySelector('select[name="unidade"]');
+
+  // 🔹 Carrega blocos pelo condomínio
+  async function carregarBlocos(condId) {
+    if (!condId) {
+      $bloco.innerHTML = '<option value="">—</option>';
+      $uni.innerHTML = '<option value="">—</option>';
+      return;
+    }
+
+    const resp = await fetch(`/ajax/blocos/${condId}/`, {credentials: 'same-origin'});
+    const html = await resp.text();
+    $bloco.innerHTML = '<option value="">—</option>' + html;
+
+    // 🔹 Preenche automaticamente com o primeiro bloco encontrado
+    const primeiro = $bloco.querySelector('option[value]:not([value=""])');
+    if (primeiro) {
+      primeiro.selected = true;
+      carregarUnidades(primeiro.value);
+    } else {
+      $uni.innerHTML = '<option value="">—</option>';
+    }
+  }
+
+  // 🔹 Carrega unidades pelo bloco
+  async function carregarUnidades(blocoId) {
+    if (!blocoId) {
+      $uni.innerHTML = '<option value="">—</option>';
+      return;
+    }
+    const resp = await fetch(`/ajax/unidades_por_bloco/${blocoId}/`, {credentials: 'same-origin'});
+    const html = await resp.text();
+    $uni.innerHTML = '<option value="">—</option>' + html;
+  }
+
+  // Eventos
+  if ($cond) {
+    $cond.addEventListener('change', function() {
+      carregarBlocos(this.value);
+    });
+  }
+
+  if ($bloco) {
+    $bloco.addEventListener('change', function() {
+      carregarUnidades(this.value);
+    });
+  }
+
+  // 🔹 Edição (pré-preenche)
+  if ($cond && $cond.value) {
+    carregarBlocos($cond.value);
+  }
+  if ($bloco && $bloco.value) {
+    carregarUnidades($bloco.value);
+  }
+
+  // Evita múltiplos envios
+  document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("bicicleta-form");
+    const btnSalvar = document.getElementById("btn-salvar");
+    form.addEventListener("submit", () => {
+      btnSalvar.disabled = true;
+      btnSalvar.textContent = "Salvando...";
+      btnSalvar.style.opacity = "0.7";
+      btnSalvar.style.cursor = "not-allowed";
+    });
+  });
+})();
+</script>
+{% endblock %}

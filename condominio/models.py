@@ -21,7 +21,7 @@ class Condominio(models.Model):
 class Bloco(models.Model):
     condominio = models.ForeignKey(Condominio, on_delete=models.CASCADE, related_name="blocos")
     nome = models.CharField(max_length=60)
-
+    usuarios_permitidos = models.ManyToManyField(User, blank=True, related_name='blocos_permitidos')
     def __str__(self):
         return f"{self.condominio} - Bloco {self.nome}"
  
@@ -50,3 +50,11 @@ class Morador(models.Model):
 
     def __str__(self):
         return f"{self.nome} ({self.unidade})"
+    
+class Bicicleta(models.Model):
+    modelo = models.CharField(max_length=120)
+    bloco = models.ForeignKey(Bloco, on_delete=models.PROTECT, related_name="bicicletas")
+    unidade = models.ForeignKey(Unidade, on_delete=models.PROTECT, related_name="bicicletas")
+
+    def __str__(self):
+        return f"{self.modelo} ({self.unidade})"

@@ -1,5 +1,5 @@
 from django import forms
-from condominio.models import Unidade, Condominio, Morador
+from condominio.models import Unidade, Condominio, Morador, Bicicleta, Bloco
 from portaria.models import Encomenda, EventoAcesso, Veiculo
 from portaria.permissions import allowed_condominios_for
 
@@ -145,9 +145,68 @@ class EventoAcessoForm(forms.ModelForm):
             #"motivo_negado",
         ]
 
-
-
 class VeiculoForm(forms.ModelForm):
     class Meta:
         model = Veiculo
         fields = ["placa", "modelo", "cor", "condominio", "unidade", "proprietario"]
+
+class BicicletaForm(forms.ModelForm):
+    condominio = forms.ModelChoiceField(
+        queryset=Condominio.objects.none(),
+        label="Condomínio",
+        required=True,
+        widget=forms.Select(attrs={"class": "form-select"})
+    )
+    bloco = forms.ModelChoiceField(
+        queryset=Bloco.objects.none(),
+        label="Bloco",
+        required=True,
+        widget=forms.Select(attrs={"class": "form-select"})
+    )
+    unidade = forms.ModelChoiceField(
+        queryset=Unidade.objects.none(),
+        label="Unidade",
+        required=True,
+        widget=forms.Select(attrs={"class": "form-select"})
+    )
+
+    class Meta:
+        model = Bicicleta
+        fields = ["condominio", "bloco", "unidade", "modelo"]
+        widgets = {
+            "modelo": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ex: Caloi, Trek, Oggi..."}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
+        # 🔹 Condominios — todos se admin, apenas os do usuário comum
+        if user and (user.is_staff or user.is_superuser):
+            self.fields["condominio"].queryset = Condominio.objects.all().order_by("nome")
+        elif user:
+            self.fields["condominio"].queryset = Condominio.objects.filter(usuarios=user).order_by("nome")
+        else:
+            self.fields["condominio"].queryset = Condominio.objects.none()
+
+        # 🔹 Se veio condominio no POST
+        if "condominio" in self.data:
+            try:
+                cond_id = int(self.data.get("condominio"))
+                self.fields["bloco"].queryset = Bloco.objects.filter(condominio_id=cond_id).order_by("nome")
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk:
+            # Edição — já tem instância
+            self.fields["bloco"].queryset = Bloco.objects.filter(condominio=self.instance.bloco.condominio)
+
+        # 🔹 Se veio bloco no POST
+        if "bloco" in self.data:
+            try:
+                bloco_id = int(self.data.get("bloco"))
+                self.fields["unidade"].queryset = Unidade.objects.filter(bloco_id=bloco_id).order_by("numero")
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk:
+            # Edição
+            self.fields["unidade"].queryset = Unidade.objects.filter(bloco=self.instance.bloco)

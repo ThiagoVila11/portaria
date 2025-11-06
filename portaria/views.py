@@ -6,9 +6,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from portaria.permissions import allowed_condominios_for
 from django.utils import timezone
 from .models import Encomenda, EventoAcesso, StatusEncomenda, TipoPessoa, MetodoAcesso, ResultadoAcesso, Veiculo, Condominio
-from condominio.models import Condominio, Unidade, Morador, Bloco
+from condominio.models import Condominio, Unidade, Morador, Bloco, Bicicleta
 from portaria.models import EventoAcesso, Encomenda
-from condominio.models import Condominio, Unidade
 from django.utils.dateparse import parse_date
 from django.contrib import messages
 from portaria.forms import EncomendaForm, EventoAcessoForm
@@ -18,7 +17,7 @@ from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
 from datetime import date, datetime, timezone, timedelta
 from integrations.allvisitorlogs import sf_connect, get_all_fields, build_where_clause, query_chunk, SOBJECT
-from .forms import VeiculoForm
+from .forms import VeiculoForm, BicicletaForm
 from django.http import JsonResponse
 from collections import OrderedDict
 from datetime import datetime
@@ -520,6 +519,91 @@ def acesso_edit(request, pk):
     # GET sempre retorna o form preenchido
     form = EventoAcessoForm(instance=evento, user=request.user)
     return render(request, "portaria/acesso_form.html", {"form": form, "obj": evento})
+
+def lista_bicicletas(request):
+    q = request.GET
+    usuario = request.user
+
+    # 🔹 1. Condomínios disponíveis
+    if usuario.is_superuser or usuario.is_staff:
+        condominios = Condominio.objects.all().order_by("nome")
+    else:
+        condominios = Condominio.objects.filter(usuarios=usuario).order_by("nome")
+
+    # 🔹 2. Base da queryset
+    bicicletas = Bicicleta.objects.select_related(
+        "unidade", "unidade__bloco", "unidade__bloco__condominio"
+    )
+
+    # 🔹 3. Filtragem de acordo com os condomínios permitidos
+    if not (usuario.is_superuser or usuario.is_staff):
+        bicicletas = bicicletas.filter(unidade__bloco__condominio__in=condominios)
+
+    # 🔹 4. Filtros da tela
+    condominio_id = q.get("condominio")
+    unidade_id = q.get("unidade")
+    modelo = q.get("modelo")
+
+    if condominio_id:
+        bicicletas = bicicletas.filter(unidade__bloco__condominio_id=condominio_id)
+    if unidade_id:
+        bicicletas = bicicletas.filter(unidade_id=unidade_id)
+    if modelo:
+        bicicletas = bicicletas.filter(modelo__icontains=modelo)
+
+    # 🔹 5. Paginação
+    paginator = Paginator(bicicletas.order_by("unidade__bloco__condominio__nome", "unidade__numero"), 15)
+    page = request.GET.get("page")
+    bicicletas_page = paginator.get_page(page)
+
+    # 🔹 6. Unidades filtradas conforme o condomínio
+    if condominio_id:
+        unidades = Unidade.objects.filter(bloco__condominio_id=condominio_id).order_by("numero")
+    else:
+        unidades = Unidade.objects.filter(bloco__condominio__in=condominios).order_by("numero")
+
+    context = {
+        "bicicletas": bicicletas_page,
+        "condominios": condominios,
+        "unidades": unidades,
+        "q": q,
+        "total": bicicletas.count(),
+    }
+    return render(request, "bicicletas/lista_bicicletas.html", context)
+
+@login_required
+def criar_bicicleta(request):
+    if request.method == "POST":
+        form = BicicletaForm(request.POST, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "🚲 Bicicleta cadastrada com sucesso!")
+            return redirect("lista_bicicletas")
+    else:
+        form = BicicletaForm(user=request.user)
+    return render(request, "bicicletas/form_bicicleta.html", {"form": form})
+
+@login_required
+def editar_bicicleta(request, pk):
+    bicicleta = get_object_or_404(Bicicleta, pk=pk)
+    if request.method == "POST":
+        form = BicicletaForm(request.POST, instance=bicicleta, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "✅ Bicicleta atualizada com sucesso!")
+            return redirect("lista_bicicletas")
+    else:
+        form = BicicletaForm(instance=bicicleta, user=request.user)
+    return render(request, "bicicletas/form_bicicleta.html", {"form": form, "obj": bicicleta})
+
+@login_required
+def excluir_bicicleta(request, pk):
+    bicicleta = get_object_or_404(Bicicleta, pk=pk)
+    if request.method == "POST":
+        bicicleta.delete()
+        messages.success(request, "🗑️ Bicicleta excluída com sucesso!")
+        return redirect("lista_bicicletas")
+    return render(request, "bicicletas/confirmar_exclusao.html", {"bicicleta": bicicleta})
 
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
@@ -1299,4 +1383,21 @@ def ajax_unidades(request, condominio_id):
 
     html = "".join([f'<option value="{u.id}">{u}</option>' for u in unidades])
 
+    return HttpResponse(html)
+
+from django.http import JsonResponse
+
+@login_required
+def unidades_por_bloco(request, bloco_id):
+    unidades = Unidade.objects.filter(bloco_id=bloco_id).values("id", "numero")
+    return JsonResponse(list(unidades), safe=False)
+
+def ajax_blocos(request, condominio_id):
+    blocos = Bloco.objects.filter(condominio_id=condominio_id).order_by("nome")
+    html = "".join([f"<option value='{b.id}'>{b.nome}</option>" for b in blocos])
+    return HttpResponse(html)
+
+def ajax_unidades_por_bloco(request, bloco_id):
+    unidades = Unidade.objects.filter(bloco_id=bloco_id).order_by("numero")
+    html = "".join([f"<option value='{u.id}'>{u.numero}</option>" for u in unidades])
     return HttpResponse(html)
