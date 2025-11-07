@@ -5,54 +5,62 @@
 
 {% block content %}
 <div class="card" style="padding:16px">
+<!-- 🔹 Filtros -->
+<form method="get" id="filtro-acessos" style="display:grid; gap:10px; margin-bottom:12px">
+  <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:end">
+    
+    <!-- 🔹 Condomínio -->
+    <label style="display:grid; gap:6px">
+      <span>Condomínio</span>
+      <select name="condominio" id="condominio-select" style="min-width:220px">
+        <option value="">Todos</option>
+        {% for c in condominios %}
+          <option value="{{ c.id }}" {% if q.condominio|default:'' == c.id|stringformat:'s' %}selected{% endif %}>
+            {{ c.nome }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
 
-  <!-- 🔹 Filtros -->
-  <form method="get" id="filtro-acessos" style="display:grid; gap:10px; margin-bottom:12px">
-    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:end">
-      
-      <!-- 🔹 Condomínio -->
-      <label style="display:grid; gap:6px">
-        <span>Condomínio</span>
-        <select name="condominio" id="condominio-select" style="min-width:220px">
-          <option value="">Todos</option>
-          {% for c in condominios %}
-            <option value="{{ c.id }}" {% if q.condominio|default:'' == c.id|stringformat:'s' %}selected{% endif %}>
-              {{ c.nome }}
-            </option>
-          {% endfor %}
-        </select>
-      </label>
+    <!-- 🔹 Unidade -->
+    <label style="display:grid; gap:6px">
+      <span>Unidade</span>
+      <select name="unidade" id="unidade-select" style="min-width:160px">
+        <option value="">Todas</option>
+        {% for u in unidades %}
+          <option value="{{ u.id }}" {% if q.unidade|default:'' == u.id|stringformat:'s' %}selected{% endif %}>
+            {{ u }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
 
-      <!-- 🔹 Unidade -->
-      <label style="display:grid; gap:6px">
-        <span>Unidade</span>
-        <select name="unidade" id="unidade-select" style="min-width:160px">
-          <option value="">Todas</option>
-          {% for u in unidades %}
-            <option value="{{ u.id }}" {% if q.unidade|default:'' == u.id|stringformat:'s' %}selected{% endif %}>
-              {{ u }}
-            </option>
-          {% endfor %}
-        </select>
-      </label>
+    <!-- 🔹 Data inicial -->
+    <label style="display:grid; gap:6px">
+      <span>Data inicial</span>
+      <input type="date" name="dt_ini" value="{{ q.dt_ini|default:'' }}">
+    </label>
 
-      <label style="display:grid; gap:6px">
-        <span>Data inicial</span>
-        <input type="date" name="dt_ini" value="{{ q.dt_ini|default:'' }}">
-      </label>
+    <!-- 🔹 Data final -->
+    <label style="display:grid; gap:6px">
+      <span>Data final</span>
+      <input type="date" name="dt_fim" value="{{ q.dt_fim|default:'' }}">
+    </label>
 
-      <label style="display:grid; gap:6px">
-        <span>Data final</span>
-        <input type="date" name="dt_fim" value="{{ q.dt_fim|default:'' }}">
-      </label>
+    <!-- 🔹 Nome -->
+    <label style="display:grid; gap:6px">
+      <span>Nome</span>
+      <input type="text" name="nome" value="{{ q.nome|default:'' }}" placeholder="Nome da pessoa">
+    </label>
 
-      <label style="display:grid; gap:6px">
-        <span>Nome</span>
-        <input type="text" name="nome" value="{{ q.nome|default:'' }}" placeholder="Nome da pessoa">
-      </label>
-
+    <!-- 🔹 Botões -->
+    <div style="display:flex; gap:8px">
+      <button class="btn" type="submit">Filtrar</button>
+      <a class="btn-outline" href="{% url 'acesso_list' %}">Limpar</a>
     </div>
-  </form>
+  </div>
+</form>
+
 
   <p>
     <a class="btn" href="{% url 'acesso_create' %}">Registrar acesso</a>
