@@ -251,41 +251,65 @@ from django.utils.dateparse import parse_date
 
 @login_required
 def acesso_list(request):
-    
+
     allowed = allowed_condominios_for(request.user)
-    is_admin_like = request.user.is_superuser or request.user.groups.filter(name="Administrador").exists()
+    is_admin_like = (
+        request.user.is_superuser 
+        or request.user.groups.filter(name="Administrador").exists()
+    )
 
-    qs = (EventoAcesso.objects
-          .select_related("condominio", "unidade")
-          .filter(condominio__in=allowed))
+    # Base da query
+    qs = (
+        EventoAcesso.objects
+        .select_related("condominio", "unidade")
+        .filter(condominio__in=allowed)
+    )
 
-    # Valores vindos do GET (se houver)
-    condominio_id = request.GET.get("condominio")
-    dt_ini        = request.GET.get("dt_ini")
-    dt_fim        = request.GET.get("dt_fim")
-    nome_q        = request.GET.get("nome")
+    # -------------------------
+    # GET (não inclui paginação)
+    # -------------------------
+    condominio_id = request.GET.get("condominio") or ""
+    dt_ini        = request.GET.get("dt_ini") or ""
+    dt_fim        = request.GET.get("dt_fim") or ""
+    nome_q        = request.GET.get("nome") or ""
+    unidade_id    = request.GET.get("unidade")
 
-    # Primeira carga: nenhum filtro no GET
-    initial_load = not any(k in request.GET for k in ["condominio", "dt_ini", "dt_fim", "nome"])
+    #
+    # Detectar primeira carga real (ignorando "?page=X")
+    #
+    filtro_params = ["condominio", "dt_ini", "dt_fim", "nome"]
+    initial_load = not any(param in request.GET for param in filtro_params)
+
     if initial_load:
         hoje = timezone.localdate()
-        dt_ini = hoje.replace(day=1).isoformat()   # string: "2025-09-01"
-        dt_fim = hoje.isoformat()                  # string: "2025-09-23"
+        dt_ini = hoje.replace(day=1).isoformat()
+        dt_fim = hoje.isoformat()
+
+        # Admin pode ver todos, demais forçam condominio padrão
         if not is_admin_like:
-            first_allowed_id = allowed.order_by("nome").values_list("id", flat=True).first()
+            first_allowed_id = (
+                allowed.order_by("nome")
+                .values_list("id", flat=True)
+                .first()
+            )
             condominio_id = str(first_allowed_id) if first_allowed_id else ""
 
-    # Aplica filtros
+    # -------------------------
+    # FILTROS
+    # -------------------------
     if condominio_id:
         qs = qs.filter(condominio_id=condominio_id)
 
+    if unidade_id:
+        qs = qs.filter(unidade_id=unidade_id)
+
     if dt_ini:
-        d0 = parse_date(str(dt_ini))
+        d0 = parse_date(dt_ini)
         if d0:
             qs = qs.filter(criado_em__date__gte=d0)
 
     if dt_fim:
-        d1 = parse_date(str(dt_fim))
+        d1 = parse_date(dt_fim)
         if d1:
             qs = qs.filter(criado_em__date__lte=d1)
 
@@ -294,22 +318,33 @@ def acesso_list(request):
 
     qs = qs.order_by("-criado_em")
 
-# 🔹 Paginação — 20 por página
+    # -------------------------
+    # Paginação
+    # -------------------------
     paginator = Paginator(qs, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
+    # -------------------------
+    # Contexto
+    # -------------------------
     ctx = {
-        "eventos": page_obj, #qs,
+        "eventos": page_obj,
         "condominios": allowed,
+
+        # Dicionário completo para manter filtros no template
         "q": {
             "condominio": condominio_id or "",
+            "unidade": unidade_id or "",
             "dt_ini": dt_ini or "",
             "dt_fim": dt_fim or "",
             "nome": nome_q or "",
         },
+
+
         "total": qs.count(),
     }
+
     return render(request, "portaria/acesso_list.html", ctx)
 
 @login_required
@@ -1311,7 +1346,7 @@ def parse_salesforce_datetime_utc(dt_str):
 def get_all_fields(request):
     """Função utilitária para pegar todos os campos de um objeto Salesforce"""
     sf = sf_connect()
-    object_name = "reda__Property__c"
+    object_name = "redafe__Folder_Template__c"
     limit = 200
     metadata = sf.restful(f"sobjects/{object_name}/describe")
     fields = [f["name"] for f in metadata["fields"]]
@@ -1401,3 +1436,124 @@ def ajax_unidades_por_bloco(request, bloco_id):
     unidades = Unidade.objects.filter(bloco_id=bloco_id).order_by("numero")
     html = "".join([f"<option value='{u.id}'>{u.numero}</option>" for u in unidades])
     return HttpResponse(html)
+
+from rest_framework import viewsets, permissions
+from condominio.models import Bloco
+from condominio.serializers import BlocoSerializer
+
+class BlocoViewSet(viewsets.ModelViewSet):
+    queryset = Bloco.objects.all()
+    serializer_class = BlocoSerializer
+    permission_classes = [permissions.AllowAny]  # ajuste conforme sua necessidade
+
+
+import base64
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from simple_salesforce import SalesforceMalformedRequest
+
+@csrf_exempt
+def webhook_boleto_reda(request):
+    """
+    Webhook que recebe um boleto e o grava na pasta 'Cubatão/Boletos'
+    dentro da biblioteca REDA, vinculando ao Account encontrado.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Método não permitido"}, status=405)
+
+    try:
+        documento = request.POST.get("documento")
+        boleto_file = request.FILES.get("boleto")
+
+        if not documento or not boleto_file:
+            return JsonResponse({"error": "Campos obrigatórios: documento e boleto"}, status=400)
+
+        sf = sf_connect()
+
+        # 🔹 Normaliza documento (CPF/CNPJ)
+        doc_clean = (
+            documento.strip()
+            .replace(".", "")
+            .replace("-", "")
+            .replace("/", "")
+            .replace(" ", "")
+        )
+
+        # 🔹 Busca o Account
+        soql = f"""
+            SELECT Id, Name
+            FROM Account
+            WHERE DocumentoTxt__c = '{doc_clean}'
+            LIMIT 1
+        """
+        acc = sf.query(soql)
+        if not acc["records"]:
+            return JsonResponse({"error": f"Nenhum Account encontrado para {documento}"}, status=404)
+
+        account_id = acc["records"][0]["Id"]
+        account_name = acc["records"][0]["Name"]
+
+        # 🔹 Busca pasta "Boletos"
+        folder = sf.query("SELECT Id FROM ContentFolder WHERE Name = 'Boletos' LIMIT 1")
+        print(f"Folder: {folder}")
+        if not folder["records"]:
+            return JsonResponse({"error": "Pasta 'Boletos' não encontrada no REDA"}, status=404)
+        boletos_folder_id = folder["records"][0]["Id"]
+
+        # 🔹 Lê o arquivo e converte para base64
+        boleto_base64 = base64.b64encode(boleto_file.read()).decode("utf-8")
+        boleto_nome = boleto_file.name
+
+        # 🔹 Cria ContentVersion (upload físico do boleto)
+        content = sf.ContentVersion.create({
+            "Title": boleto_nome.replace(".pdf", ""),
+            "PathOnClient": boleto_nome,
+            "VersionData": boleto_base64,
+            #"FirstPublishLocationId": boletos_folder_id,  # publica direto na pasta 'Boletos'
+            "redafe__Template_Folder_Id__c": 'a1lNp000000G467IAC' #boletos_folder_id,  # campo customizado REDA
+        })
+        #content = sf.ContentVersion.create({
+        #    "Title": boleto_nome.replace(".pdf", ""),
+        #    "PathOnClient": boleto_nome,
+        #    "VersionData": boleto_base64
+        #})
+        content_version_id = content["id"]
+        print(f"ContentVersion criado: {content_version_id}")
+
+        # 🔹 Busca ContentDocumentId
+        query_doc = sf.query(
+            f"SELECT ContentDocumentId FROM ContentVersion WHERE Id = '{content_version_id}'"
+        )
+        content_doc_id = query_doc["records"][0]["ContentDocumentId"]
+        print(f"ContentDocumentId obtido: {content_doc_id}")
+
+        # 🔹 Move o arquivo para a pasta 'Boletos'
+        #try:
+        #    sf.ContentFolderItem.create({
+        #        "ContentDocumentId": content_doc_id,
+        #        "ParentContentFolderId": boletos_folder_id
+        #    })
+        #except SalesforceMalformedRequest as e:
+        #    print(f"Aviso: não foi possível mover para a pasta Boletos ({e.content})")
+
+        # 🔹 Vincula o arquivo ao Account
+        sf.ContentDocumentLink.create({
+            "ContentDocumentId": content_doc_id,
+            "LinkedEntityId": account_id,
+            "ShareType": "V",
+            "Visibility": "AllUsers",
+        })
+
+        return JsonResponse({
+            "success": True,
+            "message": f"Boleto '{boleto_nome}' gravado com sucesso na pasta 'Cubatão/Boletos' e vinculado ao Account '{account_name}'.",
+            "account_id": account_id,
+            "boletos_folder_id": boletos_folder_id,
+            "content_document_id": content_doc_id,
+        })
+
+    except SalesforceMalformedRequest as e:
+        return JsonResponse({"error": e.content}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

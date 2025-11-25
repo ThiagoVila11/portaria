@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views_salesforce as sfv
 from . import views
-from .views import visitantes_preaprovados_api, get_all_fields, veiculos_unidades, reservas_unidades, morador_unidades
+from .views import * #visitantes_preaprovados_api, get_all_fields, veiculos_unidades, reservas_unidades, morador_unidades, webhook_boleto_salesforce
 
 
 urlpatterns = [
@@ -50,5 +50,6 @@ path("api/unidades_por_bloco/<int:bloco_id>/", views.unidades_por_bloco, name="u
 path("ajax/blocos/<int:condominio_id>/", views.ajax_blocos, name="ajax_blocos"),
 path("ajax/unidades_por_bloco/<int:bloco_id>/", views.ajax_unidades_por_bloco, name="ajax_unidades_por_bloco"),
 
+path("api/reda/boleto/", views.webhook_boleto_reda, name="webhook_boleto_reda"),
 
 ]
