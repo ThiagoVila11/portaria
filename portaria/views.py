@@ -713,14 +713,22 @@ def visitantes_preaprovados(request):
     # 🧭 Filtro
     condominio_raw = request.GET.get("condominio", "").strip()
     condominio = int(condominio_raw) if condominio_raw.isdigit() else None
-    sf_cursor = request.GET.get("sf_page")  # 🔹 novo: cursor Salesforce
-
+    sf_cursor = request.GET.get("sf_page")
+    print(f"Filtro condominio: {condominio} | Cursor: {sf_cursor}")
+    # -------------------------------------------------------------------
+    # ✔ Só condomínios permitidos ao usuário
+    # -------------------------------------------------------------------
     allowed = allowed_condominios_for(request.user)
+
+    # Salesforce IDs dos allowed
     allowed_sf_ids = list(
-        Condominio.objects.filter(id__in=allowed).values_list("sf_property_id", flat=True)
+        Condominio.objects.filter(id__in=allowed)
+        .values_list("sf_property_id", flat=True)
     )
 
-    # 🧱 Monta SOQL base
+    # -------------------------------------------------------------------
+    # 🧱 SOQL base
+    # -------------------------------------------------------------------
     soql = """
         SELECT Id,
                reda__Contact__r.Name,
@@ -733,20 +741,36 @@ def visitantes_preaprovados(request):
         WHERE reda__Permitted_Till_Datetime__c != null
     """
 
-    # 🧭 Aplica filtro de condomínio
+    # -------------------------------------------------------------------
+    # ✔ Filtro inicial AUTOMÁTICO pelos allowed, caso nenhum condomínio tenha sido escolhido
+    # -------------------------------------------------------------------
+    if not condominio:
+        print("Nenhum condomínio específico escolhido.")
+        if allowed_sf_ids:
+            lista = "', '".join(allowed_sf_ids)
+            soql += f" AND reda__Property__c IN ('{lista}')"
+            print(f"🔒 Filtrando automaticamente pelos condomínios permitidos: {allowed_sf_ids}")
+
+    # -------------------------------------------------------------------
+    # ✔ Se o usuário escolheu um condomínio específico
+    # -------------------------------------------------------------------
     if condominio:
         sf_property_id = (
             Condominio.objects.filter(id=condominio)
             .values_list("sf_property_id", flat=True)
             .first()
         )
+        print(f"Condomínio escolhido: {condominio} → SF ID: {sf_property_id}")
         if sf_property_id:
             soql += f" AND reda__Property__c = '{sf_property_id}'"
+            print(f"📍 Filtrando pelo condomínio escolhido: {sf_property_id}")
 
-    soql += "LIMIT 500"
-    soql += " ORDER BY CreatedDate DESC"
 
-    # 🧭 Pega página do Salesforce
+    soql += " LIMIT 500 ORDER BY CreatedDate DESC"
+
+    # -------------------------------------------------------------------
+    # Paginação Salesforce
+    # -------------------------------------------------------------------
     if sf_cursor:
         print(f"🔁 Buscando próxima página via cursor: {sf_cursor}")
         result = sf.query_more(sf_cursor, True)
@@ -755,7 +779,7 @@ def visitantes_preaprovados(request):
         result = sf.query(soql)
 
     recs = result.get("records", [])
-    next_cursor = result.get("nextRecordsUrl")  # se houver próxima página
+    next_cursor = result.get("nextRecordsUrl")
     print(f"📦 Registros retornados: {len(recs)} | Próxima página: {bool(next_cursor)}")
 
     # 🔹 Formata datas
@@ -764,22 +788,22 @@ def visitantes_preaprovados(request):
         for field in ["CreatedDate", "reda__Permitted_Till_Datetime__c"]:
             val = r.get(field)
             if val and "T" in val:
-                val = val.replace("T", " ").split(".")[0]
-                r[field] = val
+                r[field] = val.replace("T", " ").split(".")[0]
             else:
                 r[field] = "—"
 
-    # 🔹 Contexto
+    # Contexto final
     ctx = {
         "visitantes": recs,
         "next_cursor": next_cursor,
-        "prev_cursor": sf_cursor,  # não real, mas útil pra controle
-        "condominios": allowed,
+        "prev_cursor": sf_cursor,
+        "condominios": allowed,         # ✔ combo mostra apenas allowed
         "total": result.get("totalSize", len(recs)),
-        "condominio_pk": condominio_raw,
+        "condominio_pk": condominio_raw # ✔ mantém filtro selecionado
     }
 
     return render(request, "portaria/visitantes_preaprovados.html", ctx)
+
 
 
 
@@ -935,7 +959,7 @@ def visitantes_preaprovados(request):
     # 🔹 Filtro automático (usuário com condomínios permitidos)
     elif allowed_sf_ids:
         sf_filter = ",".join(f"'{c}'" for c in allowed_sf_ids if c)
-        #soql += f" AND reda__Property__c IN ({sf_filter})"
+        soql += f" AND reda__Property__r.reda__Region__c IN ({sf_filter})"
         print(f"🔒 Filtro automático aplicado: reda__Property__r.reda__Region__c IN ({sf_filter})")
 
     if unidade_filtro:    
