@@ -1370,8 +1370,8 @@ def parse_salesforce_datetime_utc(dt_str):
 def get_all_fields(request):
     """Função utilitária para pegar todos os campos de um objeto Salesforce"""
     sf = sf_connect()
-    object_name = "redafe__Folder_Template__c"
-    limit = 200
+    object_name = "redafe__Folder__c"
+    limit = 2000
     metadata = sf.restful(f"sobjects/{object_name}/describe")
     fields = [f["name"] for f in metadata["fields"]]
 
@@ -1519,8 +1519,9 @@ def webhook_boleto_reda(request):
         account_name = acc["records"][0]["Name"]
 
         # 🔹 Busca pasta "Boletos"
-        folder = sf.query("SELECT Id FROM ContentFolder WHERE Name = 'Boletos' LIMIT 1")
-        print(f"Folder: {folder}")
+        account_id = "001Np00001V9FQUIA3"
+        folder = sf.query("SELECT Id FROM redafe__Folder__c WHERE redafe__File_Folder_Label__c = 'Boletos' and redafe__Account__c = '001Np00001V9FQUIA3' and redafe__Parent_Folder__c = 'a1mNp0000011y9dIAA' LIMIT 1")
+        #print(f"Folder: {folder}")
         if not folder["records"]:
             return JsonResponse({"error": "Pasta 'Boletos' não encontrada no REDA"}, status=404)
         boletos_folder_id = folder["records"][0]["Id"]
@@ -1534,15 +1535,12 @@ def webhook_boleto_reda(request):
             "Title": boleto_nome.replace(".pdf", ""),
             "PathOnClient": boleto_nome,
             "VersionData": boleto_base64,
-            #"FirstPublishLocationId": boletos_folder_id,  # publica direto na pasta 'Boletos'
-            "redafe__Template_Folder_Id__c": 'a1lNp000000G467IAC' #boletos_folder_id,  # campo customizado REDA
+            "FirstPublishLocationId": boletos_folder_id,  # publica direto na pasta 'Boletos'
+            "redafe__Template_Folder_Id__c": 'a1mNp0000011y4nIAA' #boletos_folder_id,  # campo customizado REDA
+            #"redafe__Parent_Folder__c": "a1mNp0000011y9dIAA"
         })
-        #content = sf.ContentVersion.create({
-        #    "Title": boleto_nome.replace(".pdf", ""),
-        #    "PathOnClient": boleto_nome,
-        #    "VersionData": boleto_base64
-        #})
         content_version_id = content["id"]
+        
         print(f"ContentVersion criado: {content_version_id}")
 
         # 🔹 Busca ContentDocumentId
@@ -1550,16 +1548,16 @@ def webhook_boleto_reda(request):
             f"SELECT ContentDocumentId FROM ContentVersion WHERE Id = '{content_version_id}'"
         )
         content_doc_id = query_doc["records"][0]["ContentDocumentId"]
-        print(f"ContentDocumentId obtido: {content_doc_id}")
+        #print(f"ContentDocumentId obtido: {content_doc_id}")
 
         # 🔹 Move o arquivo para a pasta 'Boletos'
-        #try:
-        #    sf.ContentFolderItem.create({
-        #        "ContentDocumentId": content_doc_id,
-        #        "ParentContentFolderId": boletos_folder_id
-        #    })
-        #except SalesforceMalformedRequest as e:
-        #    print(f"Aviso: não foi possível mover para a pasta Boletos ({e.content})")
+        try:
+            sf.ContentFolderItem.create({
+                "ContentDocumentId": content_doc_id,
+                "ParentContentFolderId": boletos_folder_id
+            })
+        except SalesforceMalformedRequest as e:
+            print(f"Aviso: não foi possível mover para a pasta Boletos ({e.content})")
 
         # 🔹 Vincula o arquivo ao Account
         sf.ContentDocumentLink.create({
@@ -1571,7 +1569,7 @@ def webhook_boleto_reda(request):
 
         return JsonResponse({
             "success": True,
-            "message": f"Boleto '{boleto_nome}' gravado com sucesso na pasta 'Cubatão/Boletos' e vinculado ao Account '{account_name}'.",
+            "message": f"Boleto '{boleto_nome}' gravado com sucesso na pasta {boletos_folder_id} 'Cubatão/Boletos' e vinculado ao Account '{account_name}'.",
             "account_id": account_id,
             "boletos_folder_id": boletos_folder_id,
             "content_document_id": content_doc_id,

@@ -53,6 +53,38 @@
       <input type="hidden" name="status" value="RECEBIDA">
 
       <hr style="margin:12px 0;">
+
+<hr style="margin:12px 0;">
+<h4>Foto da Encomenda</h4>
+
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button type="button" class="btn-outline" id="btn-abrir-camera">
+          📷 Tirar Foto
+        </button>
+      </div>
+
+      <!-- Modal simples -->
+      <div id="camera-modal" style="
+        display:none;
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,0.6);
+        justify-content:center;
+        align-items:center;
+        z-index:9999;
+      ">
+        <div style="background:#fff; padding:16px; border-radius:8px; max-width:420px; width:100%;">
+          <video id="camera-video" autoplay playsinline style="width:100%; border-radius:6px;"></video>
+          <canvas id="camera-canvas" style="display:none;"></canvas>
+
+          <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+            <button type="button" class="btn-outline" id="btn-cancelar-camera">Cancelar</button>
+            <button type="button" class="btn" id="btn-capturar-foto">Capturar</button>
+          </div>
+        </div>
+      </div>
+
+
       <h4>Anexos (máximo 5)</h4>
 
       <div id="file-inputs" style="display:grid; gap:10px;">
@@ -145,5 +177,83 @@
       btnSalvar.style.cursor = "not-allowed";
     });
   });
+
+
+  /* 📷 Captura de foto via webcam / câmera do celular */
+  (function () {
+    const btnAbrir = document.getElementById("btn-abrir-camera");
+    const modal = document.getElementById("camera-modal");
+    const video = document.getElementById("camera-video");
+    const canvas = document.getElementById("camera-canvas");
+    const btnCapturar = document.getElementById("btn-capturar-foto");
+    const btnCancelar = document.getElementById("btn-cancelar-camera");
+
+    let stream = null;
+
+    function getNextFileInput() {
+      for (let i = 1; i <= 5; i++) {
+        const input = document.getElementById(`arquivo_0${i}`);
+        if (input && input.files.length === 0) {
+          return input;
+        }
+      }
+      alert("Limite máximo de 5 anexos atingido.");
+      return null;
+    }
+
+    async function abrirCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+          audio: false
+        });
+        video.srcObject = stream;
+        modal.style.display = "flex";
+      } catch (err) {
+        alert("Não foi possível acessar a câmera.");
+        console.error(err);
+      }
+    }
+
+    function fecharCamera() {
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+      }
+      modal.style.display = "none";
+    }
+
+    btnAbrir?.addEventListener("click", abrirCamera);
+    btnCancelar?.addEventListener("click", fecharCamera);
+
+    btnCapturar?.addEventListener("click", () => {
+      const input = getNextFileInput();
+      if (!input) return;
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0);
+
+      canvas.toBlob(blob => {
+        const file = new File(
+          [blob],
+          `foto_encomenda_${Date.now()}.jpg`,
+          { type: "image/jpeg" }
+        );
+
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+
+        input.style.display = "block";
+        input.dispatchEvent(new Event("change"));
+
+        fecharCamera();
+      }, "image/jpeg", 0.9);
+    });
+  })();
+
 </script>
 {% endblock %}
