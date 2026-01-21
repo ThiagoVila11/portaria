@@ -157,3 +157,12 @@ class Veiculo(models.Model):
 
     def __str__(self):
         return f"{self.placa} - {self.modelo} ({self.cor})"
+
+class FilaIntegracao(models.Model):
+    Encomenda = models.ForeignKey(Encomenda, on_delete=models.CASCADE)
+    Tentativas = models.IntegerField(default=0)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    integrado_em = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.Encomenda} - Criado em {self.criado_em}"

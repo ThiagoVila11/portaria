@@ -26,7 +26,7 @@ class BlocoAdmin(admin.ModelAdmin):
 
 @admin.register(Morador)
 class MoradorAdmin(admin.ModelAdmin):
-    list_display = ("nome", "unidade", "ativo", "sf_contact_id")
+    list_display = ("nome", "unidade", "ativo", "sf_contact_id", "foto", "face_id", "boleto_id")
     search_fields = ("nome", "sf_contact_id", "unidade__numero", "unidade__bloco__condominio__nome")
 
 
