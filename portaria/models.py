@@ -159,10 +159,13 @@ class Veiculo(models.Model):
         return f"{self.placa} - {self.modelo} ({self.cor})"
 
 class FilaIntegracao(models.Model):
-    Encomenda = models.ForeignKey(Encomenda, on_delete=models.CASCADE)
+    Encomenda = models.ForeignKey(Encomenda, on_delete=models.CASCADE,related_name="fila_integracao")
     Tentativas = models.IntegerField(default=0)
     criado_em = models.DateTimeField(auto_now_add=True)
     integrado_em = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ("Encomenda",)
 
     def __str__(self):
         return f"{self.Encomenda} - Criado em {self.criado_em}"
