@@ -47,6 +47,9 @@ class Morador(models.Model):
     ativo = models.BooleanField(default=True)
     sf_contact_id = models.CharField("Salesforce Contact Id", max_length=18, blank=True)
     sf_opportunity_id = models.CharField("Salesforce Opportunity Id", max_length=18, blank=True)
+    foto = models.ImageField(upload_to='fotos_moradores/', blank=True, null=True)
+    face_id = models.CharField(max_length=255, blank=True, null=True)  # For facial recognition integration
+    boleto_id = models.CharField(max_length=100, blank=True, null=True)  # ID from boleto system
 
     def __str__(self):
         return f"{self.nome} ({self.unidade})"

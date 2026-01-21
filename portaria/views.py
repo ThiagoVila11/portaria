@@ -1196,9 +1196,14 @@ def morador_unidades(request):
         "moradores": moradores_lista,
         "condominios": allowed,
         "total": len(moradores),
-        "morador": morador_nome,
-        "condominio_pk": condominio_pk,
-    }
+
+        # 🔹 estado dos filtros
+        "q": {
+            "nome": morador_nome,
+            "apartamento": apto,
+            "condominio": condominio_pk,
+        },
+}
 
     return render(request, "portaria/morador_list.html", ctx)
 
